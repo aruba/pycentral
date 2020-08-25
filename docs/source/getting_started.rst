@@ -14,13 +14,15 @@ Package Structure
    │   │   base.py
    │   │   configuration.py
    │   │   ...
+   │   │
+   │   └───workflows
+   │       │   config_apsettings_from_csv.py
+   │       │   ...
    │   
    └───docs
-   │   │   ...
-   │   
-   └───workflows
-       │   config_apsettings_from_csv.py
        │   ...
+      
+   
 
 
 The ``pycentral`` package is a directory containing files and subdirectories. Contained directly within the top level \
@@ -31,7 +33,7 @@ and ``workflows``.
 pycentral
 ^^^^^^^^^
 The ``pycentral`` subfolder contains the Aruba Central Python modules. Each module contains multiple Python classes. Each Class \
-is a representation of some of the Aruba Centra's `API Reference category <https://developer.arubanetworks.com/aruba-central/reference>`_. \
+is a representation of some of the Aruba Central's `API Reference category <https://developer.arubanetworks.com/aruba-central/reference>`_. \
 Each class has its own function definitions that are used to make a single REST API call. The REST API calls are performed using the \
 Python ``requests`` library, which provides functions to make HTTP GET, POST, PUT, PATCH and DELETE requests as supported by Aruba \
 Central API Gateway.
@@ -50,6 +52,6 @@ Executing scripts
 ^^^^^^^^^^^^^^^^
 
 Refer `Aruba's Developer Hub <https://developer.arubanetworks.com/aruba-central/docs>`_ for the sample scripts written using \
-``pycentral.pycentral`` modules and executing ``pycentral.workflows`` workflows. 
+``pycentral`` modules and ``pycentral.workflows`` workflows. 
 
 .. Important:: For more information about Aruba Central and REST APIs visit Aruba Central's page in `Aruba Developer Hub <https://developer.arubanetworks.com>`_.

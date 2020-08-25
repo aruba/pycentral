@@ -10,12 +10,12 @@ To use pip to install the pyaoscx package from the official Python Package Index
 
 .. code-block:: console
 
-   pip install pycentral
+   pip3 install pycentral
 
 To install package with extras `colorLog` which displays logs in color on stdout.
 
 .. code-block:: console
 
-   pip install pycentral[colorLog]
+   pip3 install pycentral[colorLog]
 
 .. Important:: This package is compatible with Python 3. Python 2 is not supported.

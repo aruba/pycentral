@@ -48,28 +48,34 @@ Now you can start making your script based on modules in pycentral or use differ
 2. Providing input variables to the Python scripts. One of the following options can be used.
     * Provide variables directly to Aruba Central Base class in dictionary format.
 
-    Access token approach:
-    ```python
-    central_info = {
-        "base_url": "<api-gateway-domain-url>",
-        "token": {
-            "access_token": "<api-gateway-access-token>"
-        }
-    }
-    ```
-
-    OAUTH APIs approach:
-    ```python
+        Access token approach:
+        ```python
         central_info = {
-            "username": "<aruba-central-account-username>",
-            "password": "<aruba-central-account-password>",
-            "client_id": "<api-gateway-client-id>",
-            "client_secret": "<api-gateway-client-secret>",
-            "customer_id": "<aruba-central-customer-id>",
-            "base_url": "<api-gateway-domain-url>"
+            "base_url": "<api-gateway-domain-url>",
+            "token": {
+                "access_token": "<api-gateway-access-token>"
+            }
         }
-    ```
-    * **OR** Provide the required variables using JSON/YAML file. Refer sample input files [sample_scripts/input_token_only.yaml](sample_scripts/input_token_only.yaml) and [sample_scripts/input_credentials.yaml](sample_scripts/input_credentials.yaml) for information.
+        ```
+
+        OAUTH APIs approach:
+        ```python
+            central_info = {
+                "username": "<aruba-central-account-username>",
+                "password": "<aruba-central-account-password>",
+                "client_id": "<api-gateway-client-id>",
+                "client_secret": "<api-gateway-client-secret>",
+                "customer_id": "<aruba-central-customer-id>",
+                "base_url": "<api-gateway-domain-url>"
+            }
+        ```
+
+        Refer the sample scripts in *step3* and *step4* for examples.
+
+    * **OR** Provide the required variables using JSON/YAML file. Refer input files [sample_scripts/input_token_only.yaml](sample_scripts/input_token_only.yaml) and [sample_scripts/input_credentials.yaml](sample_scripts/input_credentials.yaml) for information.
+
+        Use `pycentral.workflows_utils.get_conn_from_file()` function which accepts name of the file and returns
+        the `ArubaCentralBase` instance object. Refer the sample script in *step5* for example.
 
 3. **Making API call using pycentral base**: Using the base class `ArubaCentralBase`, any Aruba Central supported REST API calls can be made. Refer the following sample script [sample_scripts/pycentral_base_sample.py](sample_scripts/pycentral_base_sample.py).
 
