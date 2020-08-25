@@ -1,0 +1,3 @@
+serial_number,hostname,ip_address,zonename,achannel,atxpower,gchannel,gtxpower,dot11a_radio_disable,dot11g_radio_disable,usb_port_disable
+AAAAAAAAAA,AP1,0.0.0.0,,,,,,,,
+BBBBBBBBBB,AP2,0.0.0.0,,,,,,,,
