@@ -27,7 +27,7 @@ In order to run the workflow scripts, please complete the steps below:
     (centralenv)$ pip3 install pycentral[colorLog]
     ```    
 
-Now you can start making your script based on modules in pycentral/pycentral or use different workflows from pycentral/workflows. 
+Now you can start making your script based on modules in pycentral or use different workflows from the subpackage `workflows`. 
 
 ## Executing Scripts
 
