@@ -77,7 +77,7 @@ Now you can start making your script based on modules in pycentral or use differ
 
 4. **Making API call using pycentral sub-modules**: Some API endpoints supported by Aruba Central are implemented as sub-modules in the Python package. Refer the following sample script using sub-modules [sample_scripts/pycentral_submodule_sample.py](sample_scripts/pycentral_submodule_sample.py).
 
-    To obtain a list of implemented sub-modules and its documentation refer the [pycentral module documentation]().
+    To obtain a list of implemented sub-modules and its documentation refer the [pycentral module documentation](https://pycentral.readthedocs.io/en/latest/).
 
 5. **Using pycentral workflows**: Workflows are used to achieve an automation use-case which generally involves multiple API calls or dealing with scale and repetitive tasks with ease. Refer the sample script using workflows [sample_scripts/pycentral_workflow_sample.py](sample_scripts/pycentral_workflow_sample.py).
 
@@ -85,7 +85,7 @@ Now you can start making your script based on modules in pycentral or use differ
 
 
 ## Documentation:
-* **Python package documentation:** [pycentral module documentation]()
+* **Python package documentation:** [pycentral module documentation](https://pycentral.readthedocs.io/en/latest/)
 * **Use-Cases and Workflows:** [Aruba Developer Hub](https://developer.arubanetworks.com/aruba-central)
 
 ## Note: 
