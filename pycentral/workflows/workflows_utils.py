@@ -28,7 +28,7 @@ def get_file_contents(filename):
         print(str(err))
         exit("exiting.. Unable to open file %s!" % filename)
 
-def get_conn_from_file(filename):
+def get_conn_from_file(filename, account = None):
     """Creates an instance of class`pycentral.ArubaCentralBase` based on the information
     provided in the YAML/JSON file. \n
         * keyword central_info: A dict containing arguments as accepted by class`pycentral.ArubaCentralBase` \n
@@ -45,9 +45,14 @@ def get_conn_from_file(filename):
     ssl_verify = True
 
     input_args = get_file_contents(filename=filename)
-    if "central_info" not in input_args:
-        sys.exit("exiting... Provide central_info in the file %s" % filename)
-    central_info = input_args["central_info"]
+    # Removed hard code "central_info" with variable called account and replaced with
+    #  variable that can be passed to method.
+    # Set account to "central_info" if None to maintain backward compatibility
+    if account is None:
+        account = "central_info"
+    if account not in input_args:
+        sys.exit("exiting... Provide %s in the file %s" % (account, filename))
+    central_info = input_args[account]
 
     if "token_store" in input_args:
         token_store = input_args["token_store"]
