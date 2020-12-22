@@ -30,10 +30,10 @@ from pycentral.base_utils import console_logger, parseInputArgs
 SUPPORTED_METHODS = ("POST", "PATCH", "DELETE", "GET", "PUT")
 
 class BearerAuth(requests.auth.AuthBase):
-    """This class uses Bearer Auth method to generate the authorization header 
+    """This class uses Bearer Auth method to generate the authorization header
     from Aruba Central Access Token.
 
-    :param token: Aruba Central Access Token 
+    :param token: Aruba Central Access Token
     :type token: str
     """
     def __init__(self, token):
@@ -47,13 +47,13 @@ class BearerAuth(requests.auth.AuthBase):
         return r
 
 class ArubaCentralBase:
-    """This is the Base class for Aruba Central which handles. 
-    1. token management (OAUTH2.0, cache/storage for reuse and refresh token). Default token caching 
+    """This is the Base class for Aruba Central which handles.
+    1. token management (OAUTH2.0, cache/storage for reuse and refresh token). Default token caching
     is in unencrypted file. Override with your implementation for secure handling of access tokens.
-    2. command function makes API requests, handles token expiry and auto-refresh expired tokens. 
-    Auto-refreh feature is functional only when OAUTH2.0 is provided. Otherwise, refresh expired tokens at your convenience. 
+    2. command function makes API requests, handles token expiry and auto-refresh expired tokens.
+    Auto-refreh feature is functional only when OAUTH2.0 is provided. Otherwise, refresh expired tokens at your convenience.
 
-    :param central_info: Containing information related Aruba Central and API Gateway for HTTPS connection. \n 
+    :param central_info: Containing information related Aruba Central and API Gateway for HTTPS connection. \n
         * keyword username: (Optional) Aruba Central username string. Provide for OAUTH2.0 if access token is not provided. \n
         * keyword password: (Optional) Aruba Central password string. Provide for OAUTH2.0 if access token is not provided. \n
         * keyword client_id: (Optional) API Gateway client_id string, Provide for OAUTH2.0 and refresh token API. \n
@@ -73,8 +73,8 @@ class ArubaCentralBase:
     """
     def __init__(self, central_info, token_store=None,
                  logger=None, ssl_verify=True):
-        """Constructor Method initializes access token. If user provides access token, use the access 
-        token for API calls. Otherwise try to reuse token from cache or try to generate 
+        """Constructor Method initializes access token. If user provides access token, use the access
+        token for API calls. Otherwise try to reuse token from cache or try to generate
         new access token via OAUTH 2.0. Terminates the program if unable to initialize the access token.
         """
         self.central_info = parseInputArgs(central_info)
@@ -89,7 +89,7 @@ class ArubaCentralBase:
         # Set token
         if "token" in self.central_info and self.central_info["token"]:
             if "access_token" not in self.central_info["token"]:
-                self.central_info["token"] = self.getToken()                
+                self.central_info["token"] = self.getToken()
         else:
             self.central_info["token"] = self.getToken()
 
@@ -97,7 +97,7 @@ class ArubaCentralBase:
             sys.exit("exiting.. unable to get API access token!")
 
     def oauthLogin(self):
-        """This function is Step1 of the OAUTH2.0 mechanism to generate access token. Login to Aruba Central 
+        """This function is Step1 of the OAUTH2.0 mechanism to generate access token. Login to Aruba Central
         is performed using username and password.
 
         :return: Tuple with two strings, csrf token and login session key.
@@ -127,12 +127,12 @@ class ArubaCentralBase:
                 cookies = resp.cookies.get_dict()
                 return cookies['csrftoken'], cookies['session']
             else:
-                resp_msg = { 
-                                "code": resp.status_code, 
-                                "msg": resp.text 
+                resp_msg = {
+                                "code": resp.status_code,
+                                "msg": resp.text
                             }
                 self.logger.error("OAUTH2.0 Step1 login API call failed with response " + str(resp_msg))
-                sys.exit(1)       
+                sys.exit(1)
         except Exception as e:
             self.logger.error("OAUTH2.0 Step1 failed with error " + str(e))
             sys.exit(1)
@@ -175,11 +175,11 @@ class ArubaCentralBase:
                 auth_code = result['auth_code']
                 return auth_code
             else:
-                resp_msg = { 
-                                "code": resp.status_code, 
-                                "msg": resp.text 
+                resp_msg = {
+                                "code": resp.status_code,
+                                "msg": resp.text
                             }
-                self.logger.error("OAUTH2.0 Step2 obtaining Auth code API call failed with response " + str(resp_msg)) 
+                self.logger.error("OAUTH2.0 Step2 obtaining Auth code API call failed with response " + str(resp_msg))
                 sys.exit(1)
         except Exception as e:
             self.logger.error("Central Login Step2 failed with error " + str(e))
@@ -215,21 +215,21 @@ class ArubaCentralBase:
                 token = result
                 return token
             else:
-                resp_msg = { 
-                                "code": resp.status_code, 
-                                "msg": resp.text 
+                resp_msg = {
+                                "code": resp.status_code,
+                                "msg": resp.text
                             }
-                self.logger.error("OAUTH2.0 Step3 creating access token API call failed with response " + str(resp_msg)) 
+                self.logger.error("OAUTH2.0 Step3 creating access token API call failed with response " + str(resp_msg))
                 sys.exit(1)
         except Exception as e:
             self.logger.error("Central Login Step3 failed with error " + str(e))
             sys.exit(1)
 
     def validateOauthParams(self):
-        """This function validates if all required parameters are available to obtain access_token via OAUTH2.0 mechanism 
+        """This function validates if all required parameters are available to obtain access_token via OAUTH2.0 mechanism
         in Aruba Central.
 
-        :return: True when validation of availability of the required parameters passed. 
+        :return: True when validation of availability of the required parameters passed.
         :rtype: bool
         """
         oauth_keys = ["client_id", "client_secret", "customer_id",
@@ -291,13 +291,13 @@ class ArubaCentralBase:
         return access_token
 
     def refreshToken(self, old_token):
-        """This function refreshes the provided API Gateway token using OAUTH2.0 API. In addition to the input args, 
+        """This function refreshes the provided API Gateway token using OAUTH2.0 API. In addition to the input args,
         this function also depends on the class variable definitions client_id and client_secret.
 
         :param old_token: API Gateway token dict consisting of refresh_token.
         :type old_token: dict
         :raises UserWarning: Raises warning when validation of availability of the required parameters fails.
-        :raises UserWarning: Raises warning when token input param is provided but it doesn't have refresh_token. 
+        :raises UserWarning: Raises warning when token input param is provided but it doesn't have refresh_token.
         :return: Token dictionary consisting of refreshed access_token and new refresh_token.
         :rtype: dict
         """
@@ -329,9 +329,9 @@ class ArubaCentralBase:
             if resp.status_code == 200:
                 token = json.loads(resp.text)
             else:
-                resp_msg = { 
-                                "code": resp.status_code, 
-                                "msg": resp.text 
+                resp_msg = {
+                                "code": resp.status_code,
+                                "msg": resp.text
                             }
                 self.logger.error("Refresh token API call failed with response " + str(resp_msg))
         except Exception as err:
@@ -340,7 +340,7 @@ class ArubaCentralBase:
         return token
 
     def storeToken(self, token):
-        """This function handles storage of token for later use. Default storage is unencrypted JSON file and is not secure. 
+        """This function handles storage of token for later use. Default storage is unencrypted JSON file and is not secure.
         Override this function and loadToken function to implement secure access token caching mechanism.
 
         :param token: API Gateway token dict consisting of access_token and refresh_token.
@@ -375,7 +375,7 @@ class ArubaCentralBase:
         Override this function with storeToken function to implement secure access token caching mechanism.
 
         :raises UserWarning: Warning to capture empty JSON
-        :return: token dict loaded from default implementation of locally stored JSON file consisting of 
+        :return: token dict loaded from default implementation of locally stored JSON file consisting of
             access_token and refresh_token.
         :rtype: dict
         """
@@ -397,7 +397,7 @@ class ArubaCentralBase:
         return token
 
     def handleTokenExpiry(self):
-        """This function handles 401 error as a result of HTTP request. An attempt to refresh token is made. 
+        """This function handles 401 error as a result of HTTP request. An attempt to refresh token is made.
         If refreshing token fails, this function tries to create new access token. Stores token for reuse.
         If all the attemps fail, program is terminated.
         """
@@ -416,7 +416,7 @@ class ArubaCentralBase:
             sys.exit("exiting...")
 
     def getToken(self):
-        """This function attempts to obtain token from storage/cache otherwise creates new access token. 
+        """This function attempts to obtain token from storage/cache otherwise creates new access token.
         Stores the token if new token is generated.
 
         :return: API Gateway token dict consisting of access_token and refresh_token
@@ -451,7 +451,7 @@ class ArubaCentralBase:
         :type headers: dict, optional
         :param params: HTTP url query parameteres, defaults to {}
         :type params: dict, optional
-        :param files: files dictionary with file pointer depending on API endpoint as acceped by 
+        :param files: files dictionary with file pointer depending on API endpoint as acceped by
             Aruba Central, defaults to {}
         :type files: dict, optional
         :return: HTTP response of API call using requests library
@@ -480,9 +480,9 @@ class ArubaCentralBase:
 
     def command(self, apiMethod, apiPath, apiData={}, apiParams={},
                 headers={}, files={}, retry_api_call=True):
-        """This function calls requestURL to make an API call to Aruba Central after gathering parameters required for API call. 
-        When an API call fails with HTTP 401 error code, the same API call is retried once after an attempt to refresh access token or 
-        create new access token is made.  
+        """This function calls requestURL to make an API call to Aruba Central after gathering parameters required for API call.
+        When an API call fails with HTTP 401 error code, the same API call is retried once after an attempt to refresh access token or
+        create new access token is made.
 
         :param apiMethod: HTTP Method for API call. Should be one of the supported methods for the respective Aruba Central API endpoint.
         :type apiMethod: str
@@ -491,12 +491,12 @@ class ArubaCentralBase:
         :param apiData: HTTP payload for the API call as required by API endpoint. Refer Aruba Central API reference swagger
             documentation, defaults to {}
         :type apiData: dict, optional
-        :param apiParams: HTTP url query parameters as required by API endpoint. Refer Aruba Central API reference 
+        :param apiParams: HTTP url query parameters as required by API endpoint. Refer Aruba Central API reference
             swagger, defaults to {}
         :type apiParams: dict, optional
         :param headers: HTTP headers as required by API endpoint. Refer Aruba Central API reference swagger, defaults to {}
         :type headers: dict, optional
-        :param files: Some API endpoints require a file upload instead of apiData. Provide file data in the format accepted by API 
+        :param files: Some API endpoints require a file upload instead of apiData. Provide file data in the format accepted by API
             endpoint and Python requests library, defaults to {}
         :type files: dict, optional
         :param retry_api_call: Attempts to refresh api token and retry the api call when invalid token error is received, defaults to True
@@ -512,7 +512,7 @@ class ArubaCentralBase:
         while retry <= 1:
             if not retry_api_call:
                 retry = 100
-            url = self.central_info["base_url"] + apiPath
+            url = get_url(self.central_info["base_url"], apiPath, query=apiParams)
             if not headers and not files:
                 headers = {
                             "Content-Type": "application/json",
