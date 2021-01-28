@@ -57,7 +57,7 @@ This repo is maintained on a best-effort basis. The burden is on the submitter a
 3. All functions should have explanatory docstrings using the reStructuredText format.
 4. All workflows should have a comment at the top explaining the configuration steps the workflow performs, and any preconditions that need to be met before running the script.
 5. All git commits should have clear, concise messages which explain the changes made in the commit. All Pull Requests (PRs) should contain a title and comments that explain the impact of the PR.
-6. All code submitted for merge consideration must be tested by the submitter. 
+6. All code submitted for merge consideration must be tested by the submitter.
 
 ## Licensing
 
@@ -126,6 +126,6 @@ accepted.
 | [aruba-automation@hpe.com][email-link] | Distribution list email to contact the switching automation technical marketing engineering team. |
 
 
-[airheads-link]: https://community.arubanetworks.com/t5/Developer-Community/bd-p/DeveloperCommunity
+[airheads-link]: https://community.arubanetworks.com/community-home/digestviewer?communitykey=ea467413-8db4-4c49-b5f8-1a12f193e959
 [aruba-bots-playlist-link]: https://www.youtube.com/playlist?list=PLsYGHuNuBZcYzoh7OIWLTyBJf-ahvE70k
 [email-link]: mailto:aruba-automation@hpe.com
