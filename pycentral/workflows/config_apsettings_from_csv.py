@@ -153,6 +153,6 @@ def ApSettingsCsv(conn, csv_filename: str):
 
     unkown_aps = list(set(all_aps) - set(success_aps + failed_aps))
     failed_aps = failed_aps + unkown_aps
-    print("")
-    LOGGER.error("Failed to update ap settings for APs %s" % failed_aps)
-
+    if failed_aps:
+        print("")
+        LOGGER.error("Failed to update ap settings for APs %s" % failed_aps)
