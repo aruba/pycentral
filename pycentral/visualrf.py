@@ -20,16 +20,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from pycentral.url_utils import UrlObj
+from pycentral.url_utils import VisualrfUrl, urlJoin
 from pycentral.base_utils import console_logger
 
-urls = UrlObj()
+urls = VisualrfUrl()
 
 class ClientLocation(object):
     """A python class to obtain client location based on visualRF floor map.
     """
     def get_client_location(self, conn, macaddr: str, offset=0, limit=100, units="FEET"):
-        """Get location of a client. This function provides output only when visualRF is 
+        """Get location of a client. This function provides output only when visualRF is
         configured in Aruba Central.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
@@ -45,7 +45,7 @@ class ClientLocation(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = urls.urlJoin(urls.CLIENT_LOCATION["GET_CLIENT_LOC"], macaddr)
+        path = urlJoin(urls.CLIENT_LOCATION["GET_CLIENT_LOC"], macaddr)
         params = {
             "offset": offset,
             "limit": limit,
@@ -59,7 +59,7 @@ class ClientLocation(object):
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
-        :param floor_id: Provide floor_id returned by `get_building_floors()` function in 
+        :param floor_id: Provide floor_id returned by `get_building_floors()` function in
             class:`FloorPlan`
         :type floor_id: str
         :param offset: Pagination start index., defaults to 0
@@ -71,7 +71,7 @@ class ClientLocation(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = urls.urlJoin(urls.CLIENT_LOCATION["GET_FLOOR_CLIENTS"], floor_id, "client_location")
+        path = urlJoin(urls.CLIENT_LOCATION["GET_FLOOR_CLIENTS"], floor_id, "client_location")
         params = {
             "offset": offset,
             "limit": limit,
@@ -99,7 +99,7 @@ class RougueLocation(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = urls.urlJoin(urls.ROGUE_LOCATION["GET_AP_LOC"], macaddr)
+        path = urlJoin(urls.ROGUE_LOCATION["GET_AP_LOC"], macaddr)
         params = {
             "offset": offset,
             "limit": limit,
@@ -125,7 +125,7 @@ class RougueLocation(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = urls.urlJoin(urls.ROGUE_LOCATION["GET_FLOOR_APS"], floor_id)
+        path = urlJoin(urls.ROGUE_LOCATION["GET_FLOOR_APS"], floor_id)
         params = {
             "offset": offset,
             "limit": limit,
@@ -162,7 +162,7 @@ class FloorPlan(object):
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
-        :param campus_id: Provide campus id. Can be obtained from `get_campus_list` function in 
+        :param campus_id: Provide campus id. Can be obtained from `get_campus_list` function in
             class:`FloorPlan`
         :type campus_id: str
         :param offset: Pagination start index., defaults to 0
@@ -172,13 +172,13 @@ class FloorPlan(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = urls.urlJoin(urls.FLOOR_PLAN["GET_CAMPUS_INFO"], campus_id)
+        path = urlJoin(urls.FLOOR_PLAN["GET_CAMPUS_INFO"], campus_id)
         params = {
             "offset": offset,
             "limit": limit
         }
         resp = conn.command(apiMethod="GET", apiPath=path, apiParams=params)
-        return resp        
+        return resp
 
     def get_building_floors(self, conn, building_id: str, offset=0, limit=100, units="FEET"):
         """Get building info and floors within the building
@@ -197,7 +197,7 @@ class FloorPlan(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = urls.urlJoin(urls.FLOOR_PLAN["GET_BUILDING_INFO"], building_id)
+        path = urlJoin(urls.FLOOR_PLAN["GET_BUILDING_INFO"], building_id)
         params = {
             "offset": offset,
             "limit": limit,
@@ -223,7 +223,7 @@ class FloorPlan(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = urls.urlJoin(urls.FLOOR_PLAN["GET_FLOOR_INFO"], floor_id)
+        path = urlJoin(urls.FLOOR_PLAN["GET_FLOOR_INFO"], floor_id)
         params = {
             "offset": offset,
             "limit": limit,
@@ -247,7 +247,7 @@ class FloorPlan(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = urls.urlJoin(urls.FLOOR_PLAN["GET_FLOOR_IMG"], floor_id, "image")
+        path = urlJoin(urls.FLOOR_PLAN["GET_FLOOR_IMG"], floor_id, "image")
         params = {
             "offset": offset,
             "limit": limit
@@ -272,7 +272,7 @@ class FloorPlan(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = urls.urlJoin(urls.FLOOR_PLAN["GET_FLOOR_APS"], floor_id, "access_point_location")
+        path = urlJoin(urls.FLOOR_PLAN["GET_FLOOR_APS"], floor_id, "access_point_location")
         params = {
             "offset": offset,
             "limit": limit,
@@ -297,7 +297,7 @@ class FloorPlan(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = urls.urlJoin(urls.FLOOR_PLAN["GET_AP_LOC"], ap_id)
+        path = urlJoin(urls.FLOOR_PLAN["GET_AP_LOC"], ap_id)
         params = {
             "offset": offset,
             "limit": limit,
