@@ -20,21 +20,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from pycentral.url_utils import UrlObj
+from pycentral.url_utils import RefreshUrl
 from pycentral.base_utils import console_logger
 
-urls = UrlObj()
+urls = RefreshUrl()
 
 class RefreshApiToken(object):
-    """Refresh the API access token in API Gateway using OAUTH API 
+    """Refresh the API access token in API Gateway using OAUTH API
     """
     def refresh_token(self, conn, apigw_client_id, apigw_client_secret, old_refresh_token):
-        """This function refreshes the existing access token and replaces old token with new token. 
-        The returned token dict will contain both access and refresh token. Use refresh token provided 
+        """This function refreshes the existing access token and replaces old token with new token.
+        The returned token dict will contain both access and refresh token. Use refresh token provided
         in the return dict for next refresh.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
-        :type conn: class:`pycentral.ArubaCentralBase` 
+        :type conn: class:`pycentral.ArubaCentralBase`
         :param apigw_client_id: Client ID from API Gateway page
         :type apigw_client_id: str
         :param apigw_client_secret: Client Secret from API Gateway page

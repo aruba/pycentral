@@ -21,10 +21,10 @@
 # SOFTWARE.
 
 import sys
-from pycentral.url_utils import UrlObj
+from pycentral.url_utils import urlJoin, MonitoringUrl
 from pycentral.base_utils import console_logger
 
-urls = UrlObj()
+urls = MonitoringUrl()
 logger = console_logger("MONITORING")
 
 class Sites(object):
@@ -34,7 +34,7 @@ class Sites(object):
         """Get list of sites
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
-        :type conn: class:`pycentral.ArubaCentralBase` 
+        :type conn: class:`pycentral.ArubaCentralBase`
         :param calculate_total: Whether to calculate total number of sites, defaults to False
         :type calculate_total: bool, optional
         :param offset: Pagination offset, defaults to 0
@@ -51,7 +51,7 @@ class Sites(object):
             "offset": offset,
             "limit": limit,
             "calculate_total": calculate_total,
-            "sort": sort 
+            "sort": sort
         }
         resp = conn.command(apiMethod="GET", apiPath=path, apiParams=params)
         return resp
@@ -60,7 +60,7 @@ class Sites(object):
         """Creates a new site
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
-        :type conn: class:`pycentral.ArubaCentralBase` 
+        :type conn: class:`pycentral.ArubaCentralBase`
         :param site_name: Name of the site be created.
         :type site_name: str
         :param site_address: Address of the site, defaults to {} \n
@@ -86,7 +86,7 @@ class Sites(object):
             logger.error("Site {} Creation Error.. Pass Address OR Geolocation, Not Both!".format(site_name))
             return None
 
-        data = self._build_site_payload(site_name=site_name, site_address=site_address, 
+        data = self._build_site_payload(site_name=site_name, site_address=site_address,
                                         geolocation=geolocation)
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
@@ -95,8 +95,8 @@ class Sites(object):
         """Update/Modify an existing site
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
-        :type conn: class:`pycentral.ArubaCentralBase` 
-        :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained 
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained
             from find_site_id function.
         :type site_id: int
         :param site_name: Name of the site be created.
@@ -115,7 +115,7 @@ class Sites(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = urls.urlJoin(urls.SITES["UPDATE"], str(site_id))
+        path = urlJoin(urls.SITES["UPDATE"], str(site_id))
         if not site_address and not geolocation:
             logger.error("Site {} Update Error.. Pass Address OR Geolocation!".format(site_name))
             return None
@@ -124,7 +124,7 @@ class Sites(object):
             logger.error("Site {} Update Error.. Pass Address OR Geolocation, Not Both!".format(site_name))
             return None
 
-        data = self._build_site_payload(site_name=site_name, site_address=site_address, 
+        data = self._build_site_payload(site_name=site_name, site_address=site_address,
                                         geolocation=geolocation)
         resp = conn.command(apiMethod="PATCH", apiPath=path, apiData=data)
         return resp
@@ -134,22 +134,22 @@ class Sites(object):
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
-        :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained 
+        :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained
             from find_site_id function.
         :type site_id: int
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = urls.urlJoin(urls.SITES["DELETE"], str(site_id))
+        path = urlJoin(urls.SITES["DELETE"], str(site_id))
         resp = conn.command(apiMethod="DELETE", apiPath=path)
-        return resp        
+        return resp
 
     def associate_devices(self, conn, site_id, device_type, device_id):
         """Associate a device to a site
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
-        :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained 
+        :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained
             from find_site_id function.
         :type site_id: int
         :param device_type: Type of the device. One of the "IAP", "ArubaSwitch", "CX", "MobilityController".
@@ -165,7 +165,7 @@ class Sites(object):
         else:
             path = urls.SITES["ADD_DEVICES"]
 
-        data = self._build_site_device_payload(site_id=site_id, device_type=device_type, 
+        data = self._build_site_device_payload(site_id=site_id, device_type=device_type,
                                                device_id=device_id)
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
@@ -175,7 +175,7 @@ class Sites(object):
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
-        :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained 
+        :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained
             from find_site_id function.
         :type site_id: int
         :param device_type: Type of the device. One of the "IAP", "ArubaSwitch", "CX", "MobilityController".
@@ -190,7 +190,7 @@ class Sites(object):
             path = urls.SITES["DELETE_DEVICE"]
         else:
             path = urls.SITES["DELETE_DEVICES"]
-        data = self._build_site_device_payload(site_id=site_id, device_type=device_type, 
+        data = self._build_site_device_payload(site_id=site_id, device_type=device_type,
                                                device_id=device_id)
         resp = conn.command(apiMethod="DELETE", apiPath=path, apiData=data)
         return resp
@@ -241,9 +241,9 @@ class Sites(object):
         return payload_json
 
     def _build_site_device_payload(self, site_id, device_type, device_id):
-        """HTTP payload for device in a site 
+        """HTTP payload for device in a site
 
-        :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained 
+        :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained
             from find_site_id function.
         :type site_id: int
         :param device_type: Type of the device. One of the "IAP", "ArubaSwitch", "CX", "MobilityController".
