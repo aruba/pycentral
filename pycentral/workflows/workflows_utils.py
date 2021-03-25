@@ -28,15 +28,17 @@ def get_file_contents(filename):
         print(str(err))
         exit("exiting.. Unable to open file %s!" % filename)
 
-def get_conn_from_file(filename, account = None):
+def get_conn_from_file(filename, account = None, logger=None):
     """Creates an instance of class`pycentral.ArubaCentralBase` based on the information
     provided in the YAML/JSON file. \n
         * keyword central_info: A dict containing arguments as accepted by class`pycentral.ArubaCentralBase` \n
         * keyword ssl_verify: A boolean when set to True, the python client validates Aruba Central's SSL certs. \n
         * keyword token_store: Optional. Defaults to None. \n
 
-    :param filename: Name of a JSON/YAML file containing the keywords required for class:`pycentral.ArubaCentralBase` 
+    :param filename: Name of a JSON/YAML file containing the keywords required for class:`pycentral.ArubaCentralBase`
     :type filename: str
+    :param logger: Provide an instance of class:`logging.logger`, defaults to logger class with name "ARUBA_BASE".
+    :type logger: class:`logging.logger`, optional
     :return: An instance of class:`pycentral.ArubaCentralBase` to make API calls and manage access tokens.
     :rtype: class:`pycentral.ArubaCentralBase`
     """
@@ -45,9 +47,10 @@ def get_conn_from_file(filename, account = None):
     ssl_verify = True
 
     input_args = get_file_contents(filename=filename)
-    # Removed hard code "central_info" with variable called account and replaced with
-    #  variable that can be passed to method.
-    # Set account to "central_info" if None to maintain backward compatibility
+    # if "central_info" not in input_args:
+    #     sys.exit("exiting... Provide central_info in the file %s" % filename)
+    # central_info = input_args["central_info"]
+
     if account is None:
         account = "central_info"
     if account not in input_args:
@@ -59,7 +62,8 @@ def get_conn_from_file(filename, account = None):
     if "ssl_verify" in input_args:
         ssl_verify = input_args["ssl_verify"]
 
-    conn = ArubaCentralBase(central_info=central_info, 
-                            token_store=token_store, 
-                            ssl_verify=ssl_verify)
+    conn = ArubaCentralBase(central_info=central_info,
+                            token_store=token_store,
+                            ssl_verify=ssl_verify,
+                            logger=logger)
     return conn
