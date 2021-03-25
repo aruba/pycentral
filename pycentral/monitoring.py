@@ -205,12 +205,29 @@ class Sites(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        resp = self.get_sites(conn)
-        if resp and "msg" in resp and "sites" in resp["msg"]:
-            for site in resp["msg"]["sites"]:
-                if site["site_name"] == site_name:
-                    return site["site_id"]
+        max_limit_size = 1000
+        total_count = 0
+        pagination_check = True
+        offset = 0
+        count = 0
+
+        while pagination_check:
+            resp = self.get_sites(conn, offset=offset, limit=max_limit_size)
+            if resp and "msg" in resp and "sites" in resp["msg"]:
+                resp = resp["msg"]
+                count = resp["count"]
+                total_count = total_count + count
+                offset = offset + count
+
+                if total_count == resp["total"]:
+                    pagination_check = False
+
+                for site in resp["sites"]:
+                    if site["site_name"] == site_name:
+                        return site["site_id"]
+
         return None
+
 
     def _build_site_payload(self, site_name, site_address, geolocation):
         """Build HTTP payload for site config
