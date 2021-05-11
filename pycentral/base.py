@@ -532,7 +532,11 @@ class ArubaCentralBase:
                         self.handleTokenExpiry()
                     retry += 1
                 else:
-                    result = {"code": resp.status_code, "msg": resp.text}
+                    result = {
+                                "code": resp.status_code,
+                                "msg": resp.text,
+                                "headers": dict(resp.headers)
+                             }
                     try:
                         result["msg"] = json.loads(result["msg"])
                     except:
