@@ -1,32 +1,78 @@
 import sys, os
-import json, yaml
+import json, yaml, csv
 
 from pycentral.base import ArubaCentralBase
 
-def get_file_contents(filename):
-    """Function to open a JSON/YAML file and return the contents of the file in dict format.
+def get_file_contents(filename, logger=None):
+    """Function to open a JSON/YAML/CSV file and return the contents of the file in dict format. (A list of dict is
+        returned for a CSV file.)
 
-    :param filename: Name of an existing JSON/YAML file.
+    :param filename: Name of an existing JSON/YAML/CSV file.
     :type filename: str
+    :param logger: Provide an instance of class:`logging.logger`.
+    :type logger: class:`logging.logger`, optional
     :raises UserWarning: Raises warning when supported filetypes are not provided.
-    :return: Data loaded from JSON/YAML file
-    :rtype: dict
+    :return: Data loaded from JSON/YAML/CSV file
+    :rtype: dict (a list of dict for CSV)
     """
-    input_args = ""
+    read_data = {}
     try:
         with open(filename, "r") as fp:
             file_dummy, file_ext = os.path.splitext(filename)
+            print(file_ext)
             if ".json" in file_ext:
-                input_args = json.loads(fp.read())
+                read_data = json.loads(fp.read())
             elif file_ext in ['.yaml', '.yml']:
-                input_args = yaml.safe_load(fp.read())
+                read_data = yaml.safe_load(fp.read())
+            elif ".csv" in file_ext:
+                read_data = list(csv.DictReader(open(filename)))
             else:
                 raise UserWarning("Provide valid file with"
-                                  "format/extension [.json/.yaml/.yml]!")
-        return input_args
+                                  "format/extension [.json/.yaml/.yml/.csv]!")
+        return read_data
+    except FileNotFoundError:
+        if logger:
+            logger.error("File %s not found.." % filename)
+        else:
+            print("File %s Not Found!" % filename)
     except Exception as err:
-        print(str(err))
-        exit("exiting.. Unable to open file %s!" % filename)
+        if logger:
+            logger.error("Error reading file %s: %s" % (filename, str(err)))
+        else:
+            print(str(err))
+
+def dict_list_to_csv(filename, csv_data_list, logger=None):
+    """Write list of dictionaries into a CSV File via csv.DictWriter()
+
+    :param filename: Name of the file to be created or overwritten
+    :type filename: str
+    :param csv_data_list: A list of dictionaries, where each dict is a row in CSV file
+    :type csv_data_list: list
+    :param logger: Provide an instance of class:`logging.logger`.
+    :type logger: class:`logging.logger`, optional
+    """
+    csv_columns = []
+    if csv_data_list and csv_data_list[0]:
+        csv_columns = list(csv_data_list[0].keys())
+    else:
+        if logger:
+            logger.warning("No data to write to a CSV file...")
+        return
+    try:
+        with open(filename, 'w') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
+            writer.writeheader()
+            for data in csv_data_list:
+                writer.writerow(data)
+        if logger:
+            logger.info("Creating a new csv file '%s' with failed APs..." % filename)
+    except IOError:
+        print("I/O error")
+    except Exception as err:
+        if logger:
+            logger.error("Error writing to file %s: %s" % (filename, str(err)))
+        else:
+            print(str(err))
 
 def get_conn_from_file(filename, account = None, logger=None):
     """Creates an instance of class`pycentral.ArubaCentralBase` based on the information
@@ -46,7 +92,9 @@ def get_conn_from_file(filename, account = None, logger=None):
     token_store = None
     ssl_verify = True
 
-    input_args = get_file_contents(filename=filename)
+    input_args = get_file_contents(filename=filename, logger=logger)
+    if not input_args:
+        sys.exit("Unable to get the file content... exiting!")
     # if "central_info" not in input_args:
     #     sys.exit("exiting... Provide central_info in the file %s" % filename)
     # central_info = input_args["central_info"]
