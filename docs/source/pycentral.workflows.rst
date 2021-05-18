@@ -1,9 +1,6 @@
 pycentral.workflows package
 ===========================
 
-Submodules
-----------
-
 pycentral.workflows.config\_apsettings\_from\_csv module
 --------------------------------------------------------
 

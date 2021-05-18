@@ -16,9 +16,6 @@ Subpackages
 
    pycentral.workflows
 
-Submodules
-----------
-
 pycentral.audit\_logs module
 ----------------------------
 

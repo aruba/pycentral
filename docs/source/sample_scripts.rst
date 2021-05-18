@@ -1,9 +1,6 @@
 sample\_scripts package
 =======================
 
-Submodules
-----------
-
 sample\_scripts.pycentral\_base\_sample module
 ----------------------------------------------
 
