@@ -504,6 +504,7 @@ class ArubaCentralBase:
         :return: HTTP response with HTTP staus_code and HTTP response payload. \n
             * keyword code: HTTP status code \n
             * keyword msg: HTTP response payload \n
+            * keyword headers: HTTP response headers \n
         :rtype: dict
         """
         retry = 0
@@ -532,7 +533,11 @@ class ArubaCentralBase:
                         self.handleTokenExpiry()
                     retry += 1
                 else:
-                    result = {"code": resp.status_code, "msg": resp.text}
+                    result = {
+                                "code": resp.status_code,
+                                "msg": resp.text,
+                                "headers": dict(resp.headers)
+                             }
                     try:
                         result["msg"] = json.loads(result["msg"])
                     except:
