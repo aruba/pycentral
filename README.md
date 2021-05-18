@@ -58,7 +58,21 @@ Now you can start making your script based on modules in pycentral or use differ
         }
         ```
 
-        OAUTH APIs approach:
+        Access token approach with capability to refresh tokens:
+        ```python
+        central_info = {
+            "base_url": "<api-gateway-domain-url>",
+            "client_id": "<api-gateway-client-id>",
+            "client_secret": "<api-gateway-client-secret>",
+            "customer_id": "<aruba-central-customer-id>",
+            "token": {
+                "access_token": "<api-gateway-access-token>",
+                "refresh_token": "<api-gateway-refresh-token>"
+            }
+        }
+        ```
+
+        OAUTH APIs approach with capability to generate new access token:
         ```python
             central_info = {
                 "username": "<aruba-central-account-username>",
@@ -81,9 +95,9 @@ Now you can start making your script based on modules in pycentral or use differ
 
     Obtain the HTTP Request related information from Aruba Central Swagger documentation or [API references](https://developer.arubanetworks.com/aruba-central/reference) page in Aruba Developer Hub.
 
-4. **Making API call using pycentral sub-modules**: Some API endpoints supported by Aruba Central are implemented as sub-modules in the Python package. Refer the following sample script using sub-modules [sample_scripts/pycentral_submodule_sample.py](sample_scripts/pycentral_submodule_sample.py).
+4. **Making API call using pycentral modules**: Some API endpoints supported by Aruba Central are implemented as modules in the Python package. Refer the following sample script using modules [sample_scripts/pycentral_module_sample.py](sample_scripts/pycentral_module_sample.py).
 
-    To obtain a list of implemented sub-modules and its documentation refer the [pycentral module documentation](https://pycentral.readthedocs.io/en/latest/).
+    To obtain a list of implemented modules and its documentation refer the [pycentral module documentation](https://pycentral.readthedocs.io/en/latest/).
 
 5. **Using pycentral workflows**: Workflows are used to achieve an automation use-case which generally involves multiple API calls or dealing with scale and repetitive tasks with ease. Refer the sample script using workflows [sample_scripts/pycentral_workflow_sample.py](sample_scripts/pycentral_workflow_sample.py).
 
@@ -101,7 +115,9 @@ Now you can start making your script based on modules in pycentral or use differ
 
     Override the `ArubaCentralBase.storeToken()` and `ArubaCentralBase.loadToken()` function definitions to change this behavior of caching in local file(JSON) and manage tokens more securely.
 
- * **Access Token**: This process is more secure. By providing *access_token* instead of credentials, the package will not cache the tokens. But loses the ability to handle expired token. Implement your own token expiry/refresh mechanism to get continued access.
+ * **Access Token**: This process is more secure. By providing only the *access_token* instead of credentials, the package will not cache the tokens. But loses the ability to handle expired token.
+
+ In order to have the refresh mechanism, when `refresh_token, client_id, client_secret and customer_id` is provided in addition to the `access_token`, the package handles the token expiry and the refreshed token is cached. This approach doesn't have the ability to generate new access token but can refresh/renew expired tokens.
 
 ## How to contribute
 Please see the accompanying [CONTRIBUTIONS.md](CONTRIBUTIONS.md) file for guidelines on how to contribute to this repository.

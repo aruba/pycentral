@@ -48,12 +48,13 @@ At least one review from a maintainer is required for all patches.
 ### Contribution Guidelines
 This repo is maintained on a best-effort basis. The burden is on the submitter and not the repo maintainers to ensure the following criteria are met when code is submitted.
 1. All code submissions must adhere to the structure of the repo:
-    * Lower-level functions and API calls must be saved in the /pyaoscx folder.
-    * High-level process-focused functions must be saved in the /workflows folder.
-    * Do not create new separate folders for submitted projects.
+    * Directory /pycentral holds python libraries and /workflows directory.
+    * The library files are base/low-level API calls with each file relating to a category in the API Documentation page within the Aruba Central API Gateway.
+    * High-level process/use-case focused scripts must be placed in the /workflows directory.
+    * Sample Scripts should be placed in /sample_scripts directory.
+    * Do not create new separate directory for submitted projects.
     * Do not make copies of existing files to be saved in different folders.
-    * The objective is that all submissions build on the repo as a whole, rather than creating multiple sub-projects housed in the repo.
-2. All Python code should conform to PEP-8 standards. The maintainers use Pycharm IDE to perform this check. That does not require submitters to use Pycharm, but regardless of the code editor used, the PEP-8 check must be successful.
+2. All Python code should conform to liberal PEP-8 standards.
 3. All functions should have explanatory docstrings using the reStructuredText format.
 4. All workflows should have a comment at the top explaining the configuration steps the workflow performs, and any preconditions that need to be met before running the script.
 5. All git commits should have clear, concise messages which explain the changes made in the commit. All Pull Requests (PRs) should contain a title and comments that explain the impact of the PR.
@@ -109,7 +110,7 @@ accepted.
 
 ## Coding Conventions
 
-1. Python code should conform to PEP-8. PyCharm editor has a built-in PEP-8 checker.
+1. Python code should conform to PEP-8.
 1. Since this is a collaborative project, document your code with comments that will help other contributors understand the code you write.
 1. When in doubt, follow conventions you see used in the source already.
 
@@ -127,5 +128,5 @@ accepted.
 
 
 [airheads-link]: https://community.arubanetworks.com/community-home/digestviewer?communitykey=ea467413-8db4-4c49-b5f8-1a12f193e959
-[aruba-bots-playlist-link]: https://www.youtube.com/playlist?list=PLsYGHuNuBZcYzoh7OIWLTyBJf-ahvE70k
+[aruba-bots-playlist-link]: https://youtube.com/playlist?list=PLsYGHuNuBZcY02FUh95ZpOB5VFkPurVaX
 [email-link]: mailto:aruba-automation@hpe.com
