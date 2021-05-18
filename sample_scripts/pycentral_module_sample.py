@@ -3,9 +3,9 @@
 # Copyright (c) 2020 Aruba, a Hewlett Packard Enterprise company
 
 """
-Sample script shows making a REST API call to Aruba Central using base module
-`pycentral.pycentral.base` and function `command()`. In this sample script an
-API call is made to obtain list of existing groups.
+Sample script shows making a REST API call to Aruba Central using module
+`pycentral.pycentral.configuration` and class:`Groups`. In this sample script
+an API call is made to obtain list of existing groups.
 
 1. central_info:
         Either provide the following Aruba Central credentials [or]
@@ -62,17 +62,14 @@ central_info = {
 }
 ssl_verify = True
 central = ArubaCentralBase(central_info=central_info,
+                           token_store=None,
                            ssl_verify=ssl_verify)
 
-# Sample API call using 'ArubaCentralBase.command()'
-# GET groups from Aruba Central
-apiPath = "/configuration/v2/groups"
-apiMethod = "GET"
-apiParams = {
-    "limit": 20,
-    "offset": 0
-}
-base_resp = central.command(apiMethod=apiMethod,
-                            apiPath=apiPath,
-                            apiParams=apiParams)
-pprint(base_resp)
+# Sample API call using Configuration module `pycentral.configuration`
+from pycentral.configuration import Groups
+
+# Get groups max limit 20, apply offset and fetch other groups in loop
+g = Groups()
+
+module_resp = g.get_groups(central)
+pprint(module_resp)

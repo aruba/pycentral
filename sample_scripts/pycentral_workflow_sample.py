@@ -3,10 +3,9 @@
 # Copyright (c) 2020 Aruba, a Hewlett Packard Enterprise company
 
 """
-Sample script shows making a REST API call to Aruba Central using 'pycentral.workflows'
-and sub-module 'config_apsettings_from_csv.py'. In this sample script an API 
-call is made to update AP settings such as AP hostname for multiple Access Points defined 
-in the CSV file. 
+Sample script shows making how to use existing automation workflows 'pycentral.workflows'.
+In this sample, AP renaming workflow for APs in the UI group is shown. The CSV file can be downloaded
+from the Central UI. Using the CSV file, update the AP names. 'config_apsettings_from_csv.py'.ß
 
 1. central_filename:
     The format for input file is provided in the files 'input_credentials' and 'input_token_only'.
@@ -27,7 +26,7 @@ in the CSV file.
                 path: "temp"
             ssl_verify: true
 
-    * Token based file will directly use the API access token and will not cache the token locally. 
+    * Token based file will directly use the API access token and will not cache the token locally.
         Sample file in YAML format
         --------------------------
             central_info:
@@ -37,20 +36,26 @@ in the CSV file.
             ssl_verify: true
 
 2. csv_filename:
-    Filename in the following format. In this example, by providing only serial_number and name,
-    an existing Access Point will be renamed. Other settings will remain as is.
-    To not update a certain AP setting, leave it empty as shown below. 
+    A CSV file as downloaded from the Aruba Central UI,
+        * "Account Home -> Network Operations -> Pick a group from Global drop-down -> Devices -> Access Points"
+        * Click on the "Download CSV" icon/button to download the CSV file.
 
-    Sample CSV File
-    ---------------
-    serial_number,hostname,ip_address,zonename,achannel,atxpower,gchannel,gtxpower,dot11a_radio_disable,dot11g_radio_disable,usb_port_disable
-    CNAAAA1234,AP1,0.0.0.0,,,,,,,,
-    CNBBBB1234,AP2,0.0.0.0,,,,,,,,
+    The following fields can also be added to the CSV file manually. Complete list of the fields are shown below.
+        * SERIAL: Serial number of the AP for which the hostname will be modified
+        * DEVICE NAME: Set new name for the AP
+        * IP ADDRESS: Set valid IP to change the IP of the AP. If the AP has DHCP based IP, set "is_dhcp_ip" flag to true.
+        * ZONE: if provided, will be configured
+        * A CHANNEL: if provided, will be configured
+        * A TX POWER: if provided, will be configured
+        * G CHANNEL: if provided, will be configured
+        * G TX POWER: if provided, will be configured
+        * DOT11A RADIO DISABLE: if provided, will be configured
+        * DOT11G RADIO DISABLE: if provided, will be configured
+        * USB PORT DISABLE: if provided, will be configured
+    Only these fields in the CSV file will be updated.
 """
 
-from pprint import pprint
-
-# Create the following files by refering to the samples.
+# Create the following files by refering to the samples/documentation.
 csv_filename = "csv_file.csv"
 central_filename = "input_token_only.yaml"
 
@@ -60,4 +65,5 @@ central = get_conn_from_file(filename=central_filename)
 
 # Rename AP using the workflow `workflows.config_apsettings_from_csv.py`
 from pycentral.workflows.config_apsettings_from_csv import ApSettingsCsv
-ApSettingsCsv(conn=central, csv_filename=csv_filename)
+ap_workflow = ApSettingsCsv(is_dhcp_ip=True)
+ap_workflow.ap_settings_csv(conn=central, csv_filename=csv_filename)
