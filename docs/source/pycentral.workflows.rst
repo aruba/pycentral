@@ -16,3 +16,11 @@ pycentral.workflows.workflows\_utils module
    :members:
    :undoc-members:
    :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: pycentral.workflows
+   :members:
+   :undoc-members:
+   :show-inheritance:
