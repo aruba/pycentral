@@ -228,7 +228,6 @@ class Sites(object):
 
         return None
 
-
     def _build_site_payload(self, site_name, site_address, geolocation):
         """Build HTTP payload for site config
 
@@ -275,4 +274,5 @@ class Sites(object):
             "device_type": device_type,
             "device_id": device_id
         }
+
         return payload_json
