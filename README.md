@@ -58,20 +58,6 @@ Now you can start making your script based on modules in pycentral or use differ
         }
         ```
 
-        Access token approach with capability to refresh tokens:
-        ```python
-        central_info = {
-            "base_url": "<api-gateway-domain-url>",
-            "client_id": "<api-gateway-client-id>",
-            "client_secret": "<api-gateway-client-secret>",
-            "customer_id": "<aruba-central-customer-id>",
-            "token": {
-                "access_token": "<api-gateway-access-token>",
-                "refresh_token": "<api-gateway-refresh-token>"
-            }
-        }
-        ```
-
         OAUTH APIs approach with capability to generate new access token:
         ```python
             central_info = {
