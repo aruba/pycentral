@@ -101,9 +101,7 @@ Now you can start making your script based on modules in pycentral or use differ
 
     Override the `ArubaCentralBase.storeToken()` and `ArubaCentralBase.loadToken()` function definitions to change this behavior of caching in local file(JSON) and manage tokens more securely.
 
- * **Access Token**: This process is more secure. By providing only the *access_token* instead of credentials, the package will not cache the tokens. But loses the ability to handle expired token.
-
- In order to have the refresh mechanism, when `refresh_token, client_id, client_secret and customer_id` is provided in addition to the `access_token`, the package handles the token expiry and the refreshed token is cached. This approach doesn't have the ability to generate new access token but can refresh/renew expired tokens.
+ * **Access Token**: This process is more secure. By providing only the *access_token* instead of credentials, the package will not cache the tokens. But loses the ability to handle expired token and to generate new access tokens.
 
 ## How to contribute
 Please see the accompanying [CONTRIBUTIONS.md](CONTRIBUTIONS.md) file for guidelines on how to contribute to this repository.
