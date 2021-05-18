@@ -47,12 +47,12 @@ C_DEFAULT_ARGS = {
 }
 
 def parseInputArgs(central_info):
-    """his method parses user input, checks for the availability of mandatory arguments. Optional missing parameters 
+    """his method parses user input, checks for the availability of mandatory arguments. Optional missing parameters
     in central_info variable is initialized as defined in C_DEFAULT_ARGS.
 
     :param central_info: central_info dictionary as read from user's input file.
     :type central_info: dict
-    :return: parsed central_info dict with missing optional params set to default values. 
+    :return: parsed central_info dict with missing optional params set to default values.
     :rtype: dict
     """
     if not central_info:
@@ -71,10 +71,10 @@ def parseInputArgs(central_info):
 
 def tokenLocalStoreUtil(token_store, customer_id="customer",
                         client_id="client"):
-    """Utility function for storeToken and loadToken default access token storage/cache method. 
-    This function generates unique file name for a customer and API gateway client to store and load access 
-    token in the local machine for reuse. The format of the file name is tok_<customer_id>_<client_id>.json. 
-    If customer_id or client_id is not provided, default values mentioned in args will be used. 
+    """Utility function for storeToken and loadToken default access token storage/cache method.
+    This function generates unique file name for a customer and API gateway client to store and load access
+    token in the local machine for reuse. The format of the file name is tok_<customer_id>_<client_id>.json.
+    If customer_id or client_id is not provided, default values mentioned in args will be used.
 
     :param token_store: Placeholder to support different token storage mechanism. \n
         * keyword type: Place holder for different token storage mechanism. Defaults to local storage. \n
@@ -123,9 +123,9 @@ def console_logger(name, level="DEBUG"):
     <date> <time> - <name> - <level> - <message>
 
     :param name: String displayed after data and time. Define it to identify from which part of the code,
-        log message is generated. 
+        log message is generated.
     :type name: str
-    :param level: Loggin level set to display messages from a certain logging level. Refer Python logging 
+    :param level: Loggin level set to display messages from a certain logging level. Refer Python logging
         library man page, defaults to "DEBUG"
     :type level: str, optional
     :return: An instance of class logging
