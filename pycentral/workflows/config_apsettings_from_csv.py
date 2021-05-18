@@ -150,21 +150,26 @@ class ApSettingsCsv():
             sys.exit("Unable to read from file %s... exiting!" % csv_filename)
 
         for ap_data in aps_data:
-            all_aps.append(ap_data["SERIAL"])
+            if "SERIAL" in ap_data:
+                ap_serial = ap_data["SERIAL"]
+            else:
+                LOGGER.error("Field name 'SERIAL' not found in the csv file %s" % csv_filename)
+                sys.exit("exiting...")
+            all_aps.append(ap_serial)
             merged_data = self.merge_apsettings_data(conn, ap_csv_data=ap_data)
             if not merged_data:
-                failed_aps.append(ap_data["SERIAL"])
-                LOGGER.error("Failed to update ap settings for AP %s" % ap_data["SERIAL"])
+                failed_aps.append(ap_serial)
+                LOGGER.error("Failed to update ap settings for AP %s" % ap_serial)
             else:
                 resp = aps.update_ap_settings(conn,
-                                            serial_number=ap_data["SERIAL"],
+                                            serial_number=ap_serial,
                                             ap_settings_data=merged_data)
                 if resp and resp["code"] == 200:
-                    success_aps.append(ap_data["SERIAL"])
-                    LOGGER.info("API call successful to update settings for AP %s" % ap_data["SERIAL"])
+                    success_aps.append(ap_serial)
+                    LOGGER.info("API call successful to update settings for AP %s" % ap_serial)
                 else:
-                    failed_aps.append(ap_data["SERIAL"])
-                    LOGGER.error("Failed to update ap settings for AP %s" % ap_data["SERIAL"])
+                    failed_aps.append(ap_serial)
+                    LOGGER.error("Failed to update ap settings for AP %s" % ap_serial)
 
         unkown_aps = list(set(all_aps) - set(success_aps + failed_aps))
         failed_aps = failed_aps + unkown_aps

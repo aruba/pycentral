@@ -19,7 +19,6 @@ def get_file_contents(filename, logger=None):
     try:
         with open(filename, "r") as fp:
             file_dummy, file_ext = os.path.splitext(filename)
-            print(file_ext)
             if ".json" in file_ext:
                 read_data = json.loads(fp.read())
             elif file_ext in ['.yaml', '.yml']:
