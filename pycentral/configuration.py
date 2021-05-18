@@ -21,10 +21,10 @@
 # SOFTWARE.
 
 import sys
-from pycentral.url_utils import UrlObj
+from pycentral.url_utils import ConfigurationUrl, urlJoin
 from pycentral.base_utils import console_logger
 
-urls = UrlObj()
+urls = ConfigurationUrl()
 DEVICE_TYPES = ["IAP", "ArubaSwitch", "CX", "MobilityController"]
 logger = console_logger("CONFIGURATION")
 
@@ -35,7 +35,7 @@ class Groups(object):
         """Get list of groups
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
-        :type conn: class:`pycentral.ArubaCentralBase` 
+        :type conn: class:`pycentral.ArubaCentralBase`
         :param offset: Pagination offset, defaults to 0
         :type offset: int, optional
         :param limit: Pagination limit with Max 20, defaults to 20
@@ -52,9 +52,9 @@ class Groups(object):
         return resp
 
     def get_config_mode_groups(self, conn, groups):
-        """For each group in the provided list, the configuration mode for Instant APs and Gateways is 
-        specified under the 'Wireless' field and for switches under the 'Wired' field. The configuration 
-        mode is specified as a boolean value indicating if the device type is managed using the template 
+        """For each group in the provided list, the configuration mode for Instant APs and Gateways is
+        specified under the 'Wireless' field and for switches under the 'Wired' field. The configuration
+        mode is specified as a boolean value indicating if the device type is managed using the template
         mode of configuration or not.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
@@ -72,7 +72,7 @@ class Groups(object):
         return resp
 
     def create_group(self, conn, group_name, group_password, wired_template=False, wireless_template=False):
-        """Create new group given a group name, group password and configuration mode(UI or 
+        """Create new group given a group name, group password and configuration mode(UI or
         template mode of configuration) to be set per device type.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
@@ -81,7 +81,7 @@ class Groups(object):
         :type group_name: str
         :param group_password: Password for the group to be created
         :type group_password: str
-        :param wired_template: Set to True to make the configuration mode for switches to template 
+        :param wired_template: Set to True to make the configuration mode for switches to template
             mode, defaults to False
         :type wired_template: bool, optional
         :param wireless_template: Set to True to make the configuration mode for IAPs and Gateways to template
@@ -96,14 +96,14 @@ class Groups(object):
         return resp
 
     def clone_create_group(self, conn, new_group_name, existing_group_name):
-        """Clone and create new group from a given group with the given name. The configuration of the new 
+        """Clone and create new group from a given group with the given name. The configuration of the new
         group will be inherited from the given group.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
         :param new_group_name: New group name to be created.
         :type new_group_name: str
-        :param existing_group_name: Existing group name to be cloned. 
+        :param existing_group_name: Existing group name to be cloned.
         :type existing_group_name: str
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
@@ -130,9 +130,9 @@ class Groups(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = urls.urlJoin(urls.GROUPS["DELETE"], group_name)
+        path = urlJoin(urls.GROUPS["DELETE"], group_name)
         resp = conn.command(apiMethod="DELETE", apiPath=path)
-        return resp   
+        return resp
 
     def _build_group_payload(self, group_name, group_password, wired_template, wireless_template):
         """Build the HTTP payload for groups config
@@ -141,7 +141,7 @@ class Groups(object):
         :type group_name: str
         :param group_password: Password for the group to be created
         :type group_password: str
-        :param wired_template: Set to True to make the configuration mode for switches to template 
+        :param wired_template: Set to True to make the configuration mode for switches to template
             mode, defaults to False
         :type wired_template: bool
         :param wireless_template: Set to True to make the configuration mode for IAPs and Gateways to template
@@ -169,15 +169,15 @@ class Devices(object):
         """Get group name for a device
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
-        :type conn: class:`pycentral.ArubaCentralBase` 
+        :type conn: class:`pycentral.ArubaCentralBase`
         :param device_serial: Serial number of Aruba device
         :type device_serial: str
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = urls.urlJoin(urls.DEVICES["GET"], device_serial, "group")
+        path = urlJoin(urls.DEVICES["GET"], device_serial, "group")
         resp = conn.command(apiMethod="GET", apiPath=path)
-        return resp  
+        return resp
 
     def get_devices_configuration(self, conn, device_serial):
         """Get last known device configuration for a device.
@@ -189,35 +189,35 @@ class Devices(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.DEVICES["GET"], device_serial, "configuration")
+        path = urlJoin(urls.DEVICES["GET"], device_serial, "configuration")
         headers = {
             "Accept": "multipart/form-data"
         }
         resp = conn.command(apiMethod="GET", apiPath=path, headers=headers)
-        return resp        
+        return resp
 
     def get_devices_config_details(self, conn, device_serial, details=True):
         """Get 1) central side configuration. 2) Device running configuration.
-        3) Configuration error details. 4) Template error details and status of a device 
+        3) Configuration error details. 4) Template error details and status of a device
         belonging to a template group.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
         :param device_serial: Serial number of Aruba device.
         :type device_serial: str
-        :param details: Usually pass false to get only the summary of a device's configuration status. Pass true only 
-            if detailed response of a device's configuration status is required. Passing true might result in slower API 
+        :param details: Usually pass false to get only the summary of a device's configuration status. Pass true only
+            if detailed response of a device's configuration status is required. Passing true might result in slower API
             response and performance effect comparatively., defaults to True
         :type details: bool, optional
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.DEVICES["GET"], device_serial, "config_details")
+        path = urlJoin(urls.DEVICES["GET"], device_serial, "config_details")
         params = {
             "details": details
         }
         resp = conn.command(apiMethod="GET", apiPath=path, apiParams=params)
-        return resp        
+        return resp
 
     def get_devices_templates(self, conn, device_serials):
         """Get existing templates for list of devices
@@ -236,7 +236,7 @@ class Devices(object):
         resp = conn.command(apiMethod="GET", apiPath=path, apiParams=params)
         return resp
 
-    def get_devices_group_templates(self, conn, device_type="IAP", include_groups=[], 
+    def get_devices_group_templates(self, conn, device_type="IAP", include_groups=[],
                                     exclude_groups=[], all_groups=False, offset=0, limit=20):
         """Get templates for devices in a group or multiple groups
 
@@ -248,7 +248,7 @@ class Devices(object):
         :type include_groups: list, optional
         :param exclude_groups: Fetch devices templates not in list of groups, defaults to []
         :type exclude_groups: list, optional
-        :param all_groups: Set to True, to fetch devices templates details for all the groups 
+        :param all_groups: Set to True, to fetch devices templates details for all the groups
             (Only allowed for user having all_groups access or admin), defaults to False
         :type all_groups: bool, optional
         :param offset: Pagination offset, defaults to 0
@@ -272,9 +272,9 @@ class Devices(object):
         resp = conn.command(apiMethod="GET", apiPath=path, apiParams=params)
         return resp
 
-    def get_device_templates_from_hash(self, conn, template_hash, offset=0, limit=20, 
+    def get_device_templates_from_hash(self, conn, template_hash, offset=0, limit=20,
                                   exclude_hash=False, device_type="IAP"):
-        """List of devices with its group name and template information is populated 
+        """List of devices with its group name and template information is populated
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
@@ -291,7 +291,7 @@ class Devices(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.DEVICES["GET"], template_hash, "template")
+        path = urlJoin(urls.DEVICES["GET"], template_hash, "template")
         params = {
             "offset": offset,
             "limit": limit,
@@ -311,7 +311,7 @@ class Devices(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.DEVICES["GET"], device_serial, "variablised_template")
+        path = urlJoin(urls.DEVICES["GET"], device_serial, "variablised_template")
         headers = {
             "Accept": "multipart/form-data"
         }
@@ -325,14 +325,14 @@ class Devices(object):
         :type conn: class:`pycentral.ArubaCentralBase`
         :param device_serial: Serial number of Aruba device.
         :type device_serial: str
-        :param username: SSH username to set to the device 
+        :param username: SSH username to set to the device
         :type username: str
-        :param password: SSH password to set to the device 
+        :param password: SSH password to set to the device
         :type password: str
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.DEVICES["SET_SWITCH_CRED"], device_serial, "ssh_connection")
+        path = urlJoin(urls.DEVICES["SET_SWITCH_CRED"], device_serial, "ssh_connection")
         data = {
                     "username": username,
                     "password": password
@@ -368,14 +368,14 @@ class Templates(object):
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
-        :param group_name: Name of an existing group 
+        :param group_name: Name of an existing group
         :type group_name: str
         :param template_name: Name of an existing template within mentioned group
         :type template_name: str
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.TEMPLATES["GET"], group_name, "templates", template_name)
+        path = urlJoin(urls.TEMPLATES["GET"], group_name, "templates", template_name)
         resp = conn.command(apiMethod="GET", apiPath=path)
         return resp
 
@@ -393,10 +393,10 @@ class Templates(object):
         :type template_name: str, optional
         :param version: Filter on version property of template, defaults to ""
         :type version: str, optional
-        :param model: Filter on model property of template. For 'ArubaSwitch' device_type, part number 
+        :param model: Filter on model property of template. For 'ArubaSwitch' device_type, part number
             (J number) can be used., defaults to ""
         :type model: str, optional
-        :param q: Search for template OR version OR model, q will be ignored if any of filter parameters are 
+        :param q: Search for template OR version OR model, q will be ignored if any of filter parameters are
             provided, defaults to ""
         :type q: str, optional
         :param offset: Pagination offset, defaults to 0
@@ -406,7 +406,7 @@ class Templates(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.TEMPLATES["GET"], group_name, "templates")
+        path = urlJoin(urls.TEMPLATES["GET"], group_name, "templates")
         params = {
             "limit": limit,
             "offset": offset
@@ -431,15 +431,15 @@ class Templates(object):
         :type conn: class:`pycentral.ArubaCentralBase`
         :param group_name: Name of the group in which the template file will be created.
         :type group_name: str
-        :param template_name: Name for the template to be created 
+        :param template_name: Name for the template to be created
         :type template_name: str
-        :param template_filename: Name of the template file in local machine to be sent to central using API 
+        :param template_filename: Name of the template file in local machine to be sent to central using API
         :type template_filename: str
         :param device_type: Type of the Aruba device, defaults to "IAP"
         :type device_type: str, optional
         :param version: Firmware version property of template., defaults to "ALL"
         :type version: str, optional
-        :param model: Model property of template. For 'ArubaSwitch' device_type, part number (J number) can be 
+        :param model: Model property of template. For 'ArubaSwitch' device_type, part number (J number) can be
             used, defaults to "ALL"
         :type model: str, optional
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
@@ -458,16 +458,16 @@ class Templates(object):
             return None
 
         # Make the API request
-        path = urls.urlJoin(urls.TEMPLATES["CREATE"], group_name, "templates")
+        path = urlJoin(urls.TEMPLATES["CREATE"], group_name, "templates")
         params = {
-                        "name": template_name, 
+                        "name": template_name,
                         "device_type": device_type,
-                        "version": version, 
+                        "version": version,
                         "model": model
                     }
         resp = conn.command(apiMethod="POST", apiPath=path,
                             apiParams=params, files=files)
-        
+
         # Close the file
         if fp:
             fp.close()
@@ -483,13 +483,13 @@ class Templates(object):
         :type group_name: str
         :param template_name: Name of the template to be modified
         :type template_name: str
-        :param template_filename: Name of the template file in local machine to be sent to central using API 
+        :param template_filename: Name of the template file in local machine to be sent to central using API
         :type template_filename: str
         :param device_type: Aruba device type of the template , defaults to ""
         :type device_type: str, optional
         :param version: Firmware version property of template., defaults to ""
         :type version: str, optional
-        :param model: Device model property of template. For 'ArubaSwitch' device_type, part number (J number) can be 
+        :param model: Device model property of template. For 'ArubaSwitch' device_type, part number (J number) can be
             used, defaults to ""
         :type model: str, optional
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
@@ -507,7 +507,7 @@ class Templates(object):
             logger.error("Unable to open the template file! " + str(err))
             return None
 
-        path = path = urls.urlJoin(urls.TEMPLATES["CREATE"], group_name, "templates")
+        path = urlJoin(urls.TEMPLATES["CREATE"], group_name, "templates")
         params = {
             "name": template_name
         }
@@ -520,7 +520,7 @@ class Templates(object):
 
         resp = conn.command(apiMethod="PATCH", apiPath=path,
                             apiParams=params, files=files)
-        
+
         # Close the file
         if fp:
             fp.close()
@@ -539,7 +539,7 @@ class Templates(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.TEMPLATES["GET"], group_name, "templates", template_name)
+        path = urlJoin(urls.TEMPLATES["GET"], group_name, "templates", template_name)
         resp = conn.command(apiMethod="DELETE", apiPath=path)
         return resp
 
@@ -556,16 +556,16 @@ class Variables(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.VARIABLES["GET"], device_serial, "template_variables")
+        path = urlJoin(urls.VARIABLES["GET"], device_serial, "template_variables")
         resp = conn.command(apiMethod="GET", apiPath=path)
-        return resp       
+        return resp
 
     def get_all_template_variables(self, conn, offset=0, limit=20, format="JSON"):
         """Get template variables for all devices
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
-        :param offset: Pagination offset. Number of items to be skipped before returning the data, 
+        :param offset: Pagination offset. Number of items to be skipped before returning the data,
             useful for pagination, defaults to 0
         :type offset: int, optional
         :param limit: Pagination limit. Maximum number of records to be returned, defaults to 20
@@ -582,7 +582,7 @@ class Variables(object):
             "limit": limit
         }
         resp = conn.command(apiMethod="GET", apiPath=path, apiParams=params)
-        return resp       
+        return resp
 
     def create_template_variables(self, conn, device_serial, variables):
         """Create template variable for a device
@@ -591,13 +591,13 @@ class Variables(object):
         :type conn: class:`pycentral.ArubaCentralBase`
         :param device_serial: Serial Number of a device for which the variables are to be created.
         :type device_serial: str
-        :param variables: Variables defined in template file to be applied for a device 
+        :param variables: Variables defined in template file to be applied for a device
             Sample Variables {"_sys_serial": "AB0011111", "_sys_lan_mac": "11:12:AA:13:14:BB", "SSID_A": "Z-Employee"}
         :type variables: dict
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.VARIABLES["CREATE"], device_serial, "template_variables")
+        path = urlJoin(urls.VARIABLES["CREATE"], device_serial, "template_variables")
         data = {
                     "variables": variables
                 }
@@ -635,7 +635,7 @@ class Variables(object):
 
         resp = conn.command(apiMethod="POST", apiPath=path,
                             apiParams=params, files=files)
-        
+
         # Close the file
         if fp:
             fp.close()
@@ -643,19 +643,19 @@ class Variables(object):
         return resp
 
     def update_template_variables(self, conn, device_serial, variables):
-        """Update values of existing template variables and add new variabels to the existing 
+        """Update values of existing template variables and add new variabels to the existing
         set of variables for a device.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
         :param device_serial: Serial number of a device
         :type device_serial: str
-        :param variables: Template variables to be updated for the mentioned device 
+        :param variables: Template variables to be updated for the mentioned device
         :type variables: dict
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.VARIABLES["UPDATE"], device_serial, "template_variables")
+        path = urlJoin(urls.VARIABLES["UPDATE"], device_serial, "template_variables")
         data = {
             "variables": variables
         }
@@ -663,7 +663,7 @@ class Variables(object):
         return resp
 
     def update_template_variables_file(self, conn, variables_filename):
-        """Update values of existing template variables and add new variabels to the existing 
+        """Update values of existing template variables and add new variabels to the existing
         set of variables for multiple devices defined in the specified file.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
@@ -688,7 +688,7 @@ class Variables(object):
             return None
 
         resp = conn.command(apiMethod="PATCH", apiPath=path, files=files)
-        
+
         # Close the file
         if fp:
             fp.close()
@@ -696,19 +696,19 @@ class Variables(object):
         return resp
 
     def replace_template_variables(self, conn, device_serial, variables):
-        """Delete all existing template variables and create requested template variables for a device. 
+        """Delete all existing template variables and create requested template variables for a device.
         This API can be used for deleting some variables out of all for a device.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
         :param device_serial: Serial number of a device
         :type device_serial: str
-        :param variables: Delete existing template variables for a device and replace with the new variables. 
+        :param variables: Delete existing template variables for a device and replace with the new variables.
         :type variables: dict
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.VARIABLES["UPDATE"], device_serial, "template_variables")
+        path = urlJoin(urls.VARIABLES["UPDATE"], device_serial, "template_variables")
         data = {
             "variables": variables
         }
@@ -716,7 +716,7 @@ class Variables(object):
         return resp
 
     def replace_template_variables_file(self, conn, variables_filename, format="JSON"):
-        """Delete all existing template variables and create requested template variables for all devices. 
+        """Delete all existing template variables and create requested template variables for all devices.
         This API can be used for deleting some variables out of all for all devices.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
@@ -747,7 +747,7 @@ class Variables(object):
 
         resp = conn.command(apiMethod="PUT", apiPath=path,
                             apiParams=params, files=files)
-        
+
         # Close the file
         if fp:
             fp.close()
@@ -764,7 +764,7 @@ class Variables(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.VARIABLES["DELETE"], device_serial, "template_variables")
+        path = urlJoin(urls.VARIABLES["DELETE"], device_serial, "template_variables")
         resp = conn.command(apiMethod="DELETE", apiPath=path)
         return resp
 
@@ -781,7 +781,7 @@ class ApSettings(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.AP_SETTINGS["GET"], serial_number)
+        path = urlJoin(urls.AP_SETTINGS["GET"], serial_number)
         resp = conn.command(apiMethod="GET", apiPath=path)
         return resp
 
@@ -807,7 +807,7 @@ class ApSettings(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urls.urlJoin(urls.AP_SETTINGS["UPDATE"], serial_number)
+        path = urlJoin(urls.AP_SETTINGS["UPDATE"], serial_number)
         data = ap_settings_data
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
