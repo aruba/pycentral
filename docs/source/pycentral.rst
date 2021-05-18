@@ -8,13 +8,24 @@ Indices and tables
 pycentral package
 =================
 
-workflows subpackage
---------------------
+Subpackages
+-----------
 
 .. toctree::
    :maxdepth: 4
 
    pycentral.workflows
+
+Submodules
+----------
+
+pycentral.audit\_logs module
+----------------------------
+
+.. automodule:: pycentral.audit_logs
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 pycentral.base module
 ---------------------
@@ -40,6 +51,22 @@ pycentral.configuration module
    :undoc-members:
    :show-inheritance:
 
+pycentral.constants module
+--------------------------
+
+.. automodule:: pycentral.constants
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pycentral.firmware\_management module
+-------------------------------------
+
+.. automodule:: pycentral.firmware_management
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pycentral.licensing module
 --------------------------
 
@@ -56,6 +83,14 @@ pycentral.monitoring module
    :undoc-members:
    :show-inheritance:
 
+pycentral.rapids module
+-----------------------
+
+.. automodule:: pycentral.rapids
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pycentral.refresh\_api\_token module
 ------------------------------------
 
@@ -64,10 +99,34 @@ pycentral.refresh\_api\_token module
    :undoc-members:
    :show-inheritance:
 
+pycentral.topology module
+-------------------------
+
+.. automodule:: pycentral.topology
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pycentral.user\_management module
+---------------------------------
+
+.. automodule:: pycentral.user_management
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pycentral.visualrf module
 -------------------------
 
 .. automodule:: pycentral.visualrf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: pycentral
    :members:
    :undoc-members:
    :show-inheritance:

@@ -15,7 +15,7 @@ pycentral's Module Documentation
    getting_started
 
 .. toctree::
-   :caption: SubModule Documentation
+   :caption: Module Documentation
 
    modules
 
