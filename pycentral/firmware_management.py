@@ -162,16 +162,16 @@ class Firmware():
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
         :param firmware_version: Specify firmware version to which you want device to upgrade. If
-        you do not specify this field then firmware upgrade initiated with recommended firmware version
+            you do not specify this field then firmware upgrade initiated with recommended firmware version
         :type firmware_version: str
         :param reboot: Use True for auto reboot after successful firmware download. Default value is False.
-        Applicable only on MAS, aruba switches and controller since IAP reboots automatically after
-        firmware download., defaults to True
+            Applicable only on MAS, aruba switches and controller since IAP reboots automatically after
+            firmware download., defaults to True
         :type reboot: bool, optional
         :param device_type: Specify one of "IAP/MAS/HP/CONTROLLER", defaults to None
         :type device_type: str, optional
-        :param model: To initiate upgrade at group level for specific model family. Applicable only
-        for Aruba switches., defaults to None
+        :param model: To initiate upgrade at group level for specific model family. Applicable only for Aruba
+            switches., defaults to None
         :type model: str, optional
         :param group: Specify Group Name to initiate upgrade for whole group., defaults to None
         :type group: str, optional
@@ -180,7 +180,7 @@ class Firmware():
         :param swarm_id: Swarm ID, defaults to None
         :type swarm_id: str, optional
         :param schedule_at: Firmware upgrade will be scheduled at, firmware_scheduled_at - current time.
-        firmware_scheduled_at is epoch in seconds and default value is current time, defaults to None
+            firmware_scheduled_at is epoch in seconds and default value is current time, defaults to None
         :type schedule_at: int, optional
         :return: HTTP Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
