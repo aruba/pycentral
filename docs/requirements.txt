@@ -1,0 +1,4 @@
+requests
+PyYAML
+urllib3
+certifi

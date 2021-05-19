@@ -49,7 +49,7 @@ modules to achieve a network automation use-case involving multiple steps or rep
 Each script contains comments that describe step-by-step the operations being performed. 
 
 Executing scripts
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 
 Refer `Aruba's Developer Hub <https://developer.arubanetworks.com/aruba-central/docs>`_ for the sample scripts written using \
 ``pycentral`` modules and ``pycentral.workflows`` workflows. 
