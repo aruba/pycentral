@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import logging, os, sys, json
+import logging, os
 from urllib.parse import urlencode, urlparse, urlunparse
 try:
     import colorlog  # type: ignore
