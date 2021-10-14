@@ -23,9 +23,10 @@
 import logging, os, sys, json
 from urllib.parse import urlencode, urlparse, urlunparse
 try:
-    from pip import get_installed_distributions
-except:
-    from pip._internal.utils.misc import get_installed_distributions
+    import colorlog  # type: ignore
+    COLOR = True
+except (ImportError, ModuleNotFoundError):
+    COLOR = False
 
 C_LOG_LEVEL = {
   "CRITICAL": 50,
@@ -134,10 +135,8 @@ def console_logger(name, level="DEBUG"):
     channel_handler = logging.StreamHandler()
     format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     date_format = '%Y-%m-%d %H:%M:%S'
-    installed_packages = get_installed_distributions()
     f = format
-    if 'colorlog' in [package.project_name for package in installed_packages]:
-        import colorlog
+    if COLOR:
         cformat = '%(log_color)s' + format
         f = colorlog.ColoredFormatter(cformat, date_format,
               log_colors = { 'DEBUG'   : 'bold_cyan', 'INFO' : 'blue',
