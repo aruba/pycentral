@@ -166,6 +166,25 @@ class Sites(object):
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
     
+    def associate_devices(self, conn, site_id, device_type, device_ids):
+        """Associate multiple devices to a site
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained
+            from find_site_id function.
+        :type site_id: int
+        :param device_type: Type of the device. One of the "IAP", "ArubaSwitch", "CX", "MobilityController".
+        :type device_type: str
+        :param device_ids: List of Aruba devices' serial number
+        :type device_ids: list
+        :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
+        :rtype: dict
+        """
+        path = None
+        path = urls.SITES["ADD_DEVICES"]
+        data = self._build_site_devices_payload(site_id=site_id, device_type=device_type,
+                                               device_ids=device_ids)
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
 
