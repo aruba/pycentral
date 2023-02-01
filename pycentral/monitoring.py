@@ -251,29 +251,8 @@ class Sites(object):
             payload_json["geolocation"] = geolocation
         return payload_json
 
-    def _build_site_device_payload(self, site_id, device_type, device_id):
-        """HTTP payload for device in a site
-
-        :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained
-            from find_site_id function.
-        :type site_id: int
-        :param device_type: Type of the device. One of the "IAP", "ArubaSwitch", "CX", "MobilityController".
-        :type device_type: str
-        :param device_id: Aruba device serial number
-        :type device_id: str
-        :return: HTTP payload for device in a site
-        :rtype: dict
-        """
-        payload_json = {
-            "site_id": site_id,
-            "device_type": device_type,
-            "device_id": device_id
-        }
-
-        return payload_json
-
     def _build_site_devices_payload(self, site_id, device_type, device_ids):
-        """HTTP payload for devices in a site
+        """HTTP payload for device(s) in a site
 
         :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained
             from find_site_id function.
