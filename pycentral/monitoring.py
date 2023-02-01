@@ -144,7 +144,7 @@ class Sites(object):
         resp = conn.command(apiMethod="DELETE", apiPath=path)
         return resp
 
-    def associate_devices(self, conn, site_id, device_type, device_id):
+    def associate_device(self, conn, site_id, device_type, device_id):
         """Associate a device to a site
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
@@ -160,13 +160,12 @@ class Sites(object):
         :rtype: dict
         """
         path = None
-        if isinstance(device_id, str):
-            path = urls.SITES["ADD_DEVICE"]
-        else:
-            path = urls.SITES["ADD_DEVICES"]
-
+        path = urls.SITES["ADD_DEVICE"]
         data = self._build_site_device_payload(site_id=site_id, device_type=device_type,
                                                device_id=device_id)
+        resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
+        return resp
+    
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
 
