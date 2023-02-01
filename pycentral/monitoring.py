@@ -188,7 +188,7 @@ class Sites(object):
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
 
-    def unassociate_devices(self, conn, site_id, device_type, device_id):
+    def unassociate_device(self, conn, site_id, device_type, device_id):
         """Unassociate a device from a site
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
