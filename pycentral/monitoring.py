@@ -167,30 +167,6 @@ class Sites(object):
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
 
-    def unassociate_device(self, conn, site_id, device_type, device_id):
-        """Unassociate a device from a site
-
-        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
-        :type conn: class:`pycentral.ArubaCentralBase`
-        :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained
-            from find_site_id function.
-        :type site_id: int
-        :param device_type: Type of the device. One of the "IAP", "ArubaSwitch", "CX", "MobilityController".
-        :type device_type: str
-        :param device_id: Aruba device serial number
-        :type device_id: str
-        :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
-        :rtype: dict
-        """
-        path = None
-        if isinstance(device_id, str):
-            path = urls.SITES["DELETE_DEVICE"]
-        else:
-            path = urls.SITES["DELETE_DEVICES"]
-        data = self._build_site_device_payload(site_id=site_id, device_type=device_type,
-                                               device_id=device_id)
-        resp = conn.command(apiMethod="DELETE", apiPath=path, apiData=data)
-        return resp
     
     def unassociate_devices(self, conn, site_id, device_type, device_ids):
         """Unassociate a device from a site
