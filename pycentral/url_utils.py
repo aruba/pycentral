@@ -191,3 +191,8 @@ class MonitoringUrl():
         "ADD_DEVICES": "/central/v2/sites/associations",
         "DELETE_DEVICES": "/central/v2/sites/associations"
     }
+
+class NewDevicesUrl():
+    DEVICES = {
+        "GET_ALL": "/platform/device_inventory/v1/devices"
+    }
