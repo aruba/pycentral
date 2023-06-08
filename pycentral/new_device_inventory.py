@@ -29,8 +29,7 @@ class Inventory(object):
     """
 
     def get_inventory(self, conn, sku_type="all", limit=20, offset=0):
-        """Create xlsx file populated with target devices from inventory.  File is 
-        created in working directory.
+        """Get devices from inventory.
         
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
