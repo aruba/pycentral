@@ -20,17 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from pycentral.base import ArubaCentralBase
-from pycentral.url_utils import NewDevicesUrl
-import xlsxwriter
+from pycentral.url_utils import InventoryUrl
 
-urls = NewDevicesUrl()
+urls = InventoryUrl()
 
-class Groups(object):
+class Inventory(object):
     """A python class consisting of functions to manage Aruba Central Devices via REST API
     """
 
-    def inventory_to_excel(self, conn, sku_type, limit=20, offset=0):
+    def get_inventory(self, conn, sku_type="all", limit=20, offset=0):
         """Create xlsx file populated with target devices from inventory.  File is 
         created in working directory.
         
@@ -43,4 +41,17 @@ class Groups(object):
         :type offset: int, optional
         :param limit: Pagination limit with Max 20, defaults to 20.  Not currently Implemented.
         :type limit: int, optional
+
+        :return: HTTP Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
+        :rtype: dict
         """
+
+        path = urls.DEVICES["GET_DEVICES"]
+        params = {
+            "limit" : limit,
+            "offset" : offset,
+            "sku_type" : sku_type
+        }
+
+        resp = conn.command(apiMethod="GET", apiPath=path, apiParams=params)
+        return resp
