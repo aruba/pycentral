@@ -36,21 +36,30 @@ class Inventory(object):
         :param sku_type: target device type to pull from inventory.  Acceptable arguments: 
             all, iap, switch, controller, gateway, vgw, cap, boc, all_ap, all_controller, others  
         :type sku_type: str
-        :param offset: Pagination offset, defaults to 0.  Not currently Implemented.
-        :type offset: int, optional
-        :param limit: Pagination limit with Max 20, defaults to 20.  Not currently Implemented.
+        :param limit: Pagination limit defaults to 0, which is intrepreted as get all.
         :type limit: int, optional
+        :param offset: Pagination offset, defaults to 0.
+        :type offset: int, optional
 
         :return: HTTP Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
 
         path = urls.DEVICES["GET_DEVICES"]
-        params = {
-            "limit" : limit,
-            "offset" : offset,
-            "sku_type" : sku_type
-        }
+
+        # Check limit for default.
+        if limit !=0:
+            params = {
+                "limit" : limit,
+                "offset" : offset,
+                "sku_type" : sku_type
+            }
+        else:
+            # No limit param to allow get all devices.
+            params = {
+                "offset" : offset,
+                "sku_type" : sku_type
+            }
 
         resp = conn.command(apiMethod="GET", apiPath=path, apiParams=params)
         return resp
