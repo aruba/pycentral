@@ -28,7 +28,7 @@ class Inventory(object):
     """A python class consisting of functions to manage Aruba Central Devices via REST API
     """
 
-    def get_inventory(self, conn, sku_type="all", limit=20, offset=0):
+    def get_inventory(self, conn, sku_type="all", limit=0, offset=0):
         """Get devices from inventory.
         
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
