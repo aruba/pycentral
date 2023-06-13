@@ -9,8 +9,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -24,41 +24,46 @@ from pycentral.url_utils import InventoryUrl
 
 urls = InventoryUrl()
 
+
 class Inventory(object):
-    """A python class consisting of functions to manage Aruba Central Devices via REST API
+    """A python class consisting of functions to manage Aruba Central devices
+    from new deive inventory category via REST API.
     """
 
     def get_inventory(self, conn, sku_type="all", limit=0, offset=0):
         """Get devices from inventory.
-        
-        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase`.
         :type conn: class:`pycentral.ArubaCentralBase`
-        :param sku_type: target device type to pull from inventory.  Acceptable arguments: 
-            all, iap, switch, controller, gateway, vgw, cap, boc, all_ap, all_controller, others  
+        :param sku_type: target device sku type to pull from inventory.
+            Acceptable arguments: all, iap, switch, controller, gateway,
+            vgw, cap, boc, all_ap, all_controller, others.
         :type sku_type: str
-        :param limit: Pagination limit defaults to 0, which is intrepreted as get all.
+        :param limit: Pagination limit. Defaults to 0, which is intrepreted as
+            get all. Maximum limit per request is 50
         :type limit: int, optional
         :param offset: Pagination offset, defaults to 0.
         :type offset: int, optional
 
-        :return: HTTP Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
+        :return: HTTP Response as provided by 'command' function in
+            class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
 
         path = urls.DEVICES["GET_DEVICES"]
 
         # Check limit for default.
-        if limit !=0:
+        if limit != 0:
             params = {
-                "limit" : limit,
-                "offset" : offset,
-                "sku_type" : sku_type
+                "limit": limit,
+                "offset": offset,
+                "sku_type": sku_type
             }
         else:
             # No limit param to allow get all devices.
             params = {
-                "offset" : offset,
-                "sku_type" : sku_type
+                "offset": offset,
+                "sku_type": sku_type
             }
 
         resp = conn.command(apiMethod="GET", apiPath=path, apiParams=params)
