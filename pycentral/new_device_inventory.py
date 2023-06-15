@@ -26,7 +26,8 @@ urls = InventoryUrl()
 
 
 class Inventory(object):
-    """A python class consisting of functions to manage Aruba Central devices
+    """
+    A python class consisting of functions to manage Aruba Central devices
     from new deive inventory category via REST API.
     """
 
@@ -40,7 +41,7 @@ class Inventory(object):
             vgw, cap, boc, all_ap, all_controller, others.
         :type sku_type: str
         :param limit: Pagination limit. Defaults to 0, which is intrepreted as
-            get all. Maximum limit per request is 50
+            get all. Maximum limit per request is 50.
         :type limit: int, optional
         :param offset: Pagination offset, defaults to 0.
         :type offset: int, optional
