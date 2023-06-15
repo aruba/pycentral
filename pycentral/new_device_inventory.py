@@ -27,12 +27,12 @@ urls = InventoryUrl()
 
 class Inventory(object):
     """
-    A python class consisting of functions to manage Aruba Central devices
-    from new deive inventory category via REST API.
+    A python class consisting of functions to manage Aruba Central inventory
+    from the new device inventory category via REST API.
     """
 
     def get_inventory(self, conn, sku_type="all", limit=0, offset=0):
-        """Get devices from inventory.
+        """Get device details from inventory.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase`.
         :type conn: class:`pycentral.ArubaCentralBase`
