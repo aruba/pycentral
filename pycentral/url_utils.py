@@ -71,6 +71,10 @@ class ConfigurationUrl():
         "REPLACE_ALL": "/configuration/v1/devices/template_variables"
     }
 
+    WLAN = {
+        "CREATE": "/configuration/v2/wlan"
+    }
+
 class LicensingUrl():
     SUBSCRIPTIONS = {
         "GET_KEYS": "/platform/licensing/v1/subscriptions",

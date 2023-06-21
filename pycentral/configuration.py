@@ -811,3 +811,41 @@ class ApSettings(object):
         data = ap_settings_data
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
+
+
+class WLAN(object):
+    """A python class consisting of functions to manage Aruba Central WLANs
+    via REST API.
+    """
+    def create_wlan(self, conn, group_name, wlan_name, wlan_data):
+        """Create new WLAN
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase
+        :param group_name: Name of  Aruba Central group to create new WLAN
+            inside.
+        :type group_name: str
+        :param wlan_name: Name string for new WLAN
+        :type wlan_name: str
+        :param wlan_data: Data to create new WLAN
+        * keyword hostname: Name string to set to the AP \n
+            * keyword essid:
+            * keyword type:
+            * keyword hide_ssid:
+            * keyword vlan:
+            * keyword zone:
+            * keyword wpa_passphrase:
+            * keyword wpa_passphrase_changed:
+            * keyword is_locked:
+            * keyword captive_profile_name:
+            * keyword bandwidth_limit_up:
+            * keyword bandwidth_limit_down:
+            * keyword bandwidth_limit_peruser_up:
+            * keyword bandwidth_limit_peruser_down:
+            * keyword access_rules:
+        :type ap_settings_data: dict
+        """
+        path = urlJoin(urls.WLAN["CREATE"], group_name, wlan_name)
+        resp = conn.command(apiMethod="POST", apiPath=path, apiDate=wlan_data)
+        return resp
