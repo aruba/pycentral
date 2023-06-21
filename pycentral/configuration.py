@@ -813,7 +813,7 @@ class ApSettings(object):
         return resp
 
 
-class WLAN(object):
+class Wlan(object):
     """A python class consisting of functions to manage Aruba Central WLANs
     via REST API.
     """
