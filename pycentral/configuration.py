@@ -822,30 +822,29 @@ class WLAN(object):
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
             API call.
-        :type conn: class:`pycentral.ArubaCentralBase
+        :type conn: class:`pycentral.ArubaCentralBase`
         :param group_name: Name of  Aruba Central group to create new WLAN
             inside.
         :type group_name: str
         :param wlan_name: Name string for new WLAN
         :type wlan_name: str
         :param wlan_data: Data to create new WLAN
-        * keyword hostname: Name string to set to the AP \n
-            * keyword essid:
-            * keyword type:
-            * keyword hide_ssid:
-            * keyword vlan:
-            * keyword zone:
-            * keyword wpa_passphrase:
-            * keyword wpa_passphrase_changed:
-            * keyword is_locked:
-            * keyword captive_profile_name:
-            * keyword bandwidth_limit_up:
-            * keyword bandwidth_limit_down:
-            * keyword bandwidth_limit_peruser_up:
-            * keyword bandwidth_limit_peruser_down:
-            * keyword access_rules:
-        :type ap_settings_data: dict
+            * keyword essid: SSID name
+            * keyword type: type designation for new SSID
+            * keyword hide_ssid: boolean to hide SSID
+            * keyword vlan: vlan to add new SSID to
+            * keyword zone: vlan zones to add SSID to
+            * keyword opmode: SSID security opmode
+            * keyword wpa_passphrase: Passphrase for SSID
+            * keyword wpa_passphrase_changed: Should always be set true
+            * keyword is_locked: Boolean
+            * keyword captive_profile_name: name for users using captive portal
+            * keyword bandwidth_limit_up: mb up
+            * keyword bandwidth_limit_down: mb down
+            * keyword bandwidth_limit_peruser_up: peruser mb up
+            * keyword bandwidth_limit_peruser_down: peruser mb down
+            * keyword access_rules: dict
         """
         path = urlJoin(urls.WLAN["CREATE"], group_name, wlan_name)
-        resp = conn.command(apiMethod="POST", apiPath=path, apiDate=wlan_data)
+        resp = conn.command(apiMethod="POST", apiPath=path, apiData=wlan_data)
         return resp
