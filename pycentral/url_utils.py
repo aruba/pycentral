@@ -72,7 +72,8 @@ class ConfigurationUrl():
     }
 
     WLAN = {
-        "CREATE": "/configuration/v2/wlan"
+        "CREATE": "/configuration/v2/wlan",
+        "DELETE": "/configuration/v1/wlan"
     }
 
 class LicensingUrl():

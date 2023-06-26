@@ -848,3 +848,19 @@ class Wlan(object):
         path = urlJoin(urls.WLAN["CREATE"], group_name, wlan_name)
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=wlan_data)
         return resp
+
+    def delete_wlan(self, conn, group_name, wlan_name):
+        """Delete an existing WLAN
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Group name of the group or guid of the swarm or
+            serial number of 10x AP
+        :type group_name: str
+        :param wlan_name: Name string for new WLAN
+        :type wlan_name: str
+        """
+        path = urlJoin(urls.WLAN["DELETE"], group_name, wlan_name)
+        resp = conn.command(apiMethod="DELETE", apiPath=path)
+        return resp
