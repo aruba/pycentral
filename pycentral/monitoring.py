@@ -163,7 +163,6 @@ class Sites(object):
         path = urls.SITES["ADD_DEVICES"]
         if isinstance(device_ids, str):
             device_ids = [device_ids]
-    
         data = self._build_site_devices_payload(site_id=site_id, device_type=device_type,
                                                device_ids=device_ids)
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
@@ -188,7 +187,6 @@ class Sites(object):
         path = urls.SITES["DELETE_DEVICES"]
         if isinstance(device_ids, str):
             device_ids = [device_ids]
-            
         data = self._build_site_devices_payload(site_id=site_id, device_type=device_type,
                                                device_ids=device_ids)
         resp = conn.command(apiMethod="DELETE", apiPath=path, apiData=data)
