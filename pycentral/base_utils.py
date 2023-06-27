@@ -63,7 +63,7 @@ def parseInputArgs(central_info):
     if "base_url" not in central_info:
         exit("Error: Provide base_url for API Gateway!")
 
-    default_dict = C_DEFAULT_ARGS
+    default_dict = dict(C_DEFAULT_ARGS)
     for key in default_dict.keys():
         if key in central_info:
             default_dict[key] = central_info[key]
