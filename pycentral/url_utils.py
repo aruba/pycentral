@@ -73,8 +73,12 @@ class ConfigurationUrl():
 
     WLAN = {
         "CREATE": "/configuration/v2/wlan",
-        "DELETE": "/configuration/v1/wlan"
+        "CREATE_FULL": "/configuration/full_wlan",
+        "DELETE": "/configuration/v1/wlan",
+        "UPDATE": "/configuration/v2/wlan",
+        "UPDATE_FULL": "/configuration/full_wlan"
     }
+
 
 class LicensingUrl():
     SUBSCRIPTIONS = {
