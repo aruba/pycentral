@@ -542,15 +542,15 @@ class ArubaCentralBase:
                     self.handleTokenExpiry()
                     retry += 1
 
-                elif resp.status_code == 429 and resp.headers['X-RateLimit-Remaining-second'] == 0: #check if the value is corrct
+                elif resp.status_code == 429 and resp.headers['X-RateLimit-Remaining-second'] == 0: #check value
                     time.sleep(2)
                     self.logger.info("Per-second rate limit reached. Adding 2 seconds interval and retrying.")
                     if retry == self.user_retries-1:
                         limit_reached = True
                     retry +=1
 
-                elif resp.status_code == 429 and resp.headers['X-RateLimit-Remaining-day'] == 0: #check if the value is corrct
-                    limit_renewal = "" #confirm with QA on typ of value and name of header
+                elif resp.status_code == 429 and resp.headers['X-RateLimit-Remaining-day'] == 0: #check value
+                    limit_renewal = "" #check value
                     self.logger.info("Per-day rate limit of " +str(resp.headers['X-RateLimit-Limit-day'])
                                      + " is exhausted. Daily rate limit quota will reset at: "
                                      + str(limit_renewal))
