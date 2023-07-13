@@ -72,6 +72,7 @@ class ConfigurationUrl():
     }
 
     WLAN = {
+        "GET_ALL": "/configuration/v1/wlan",
         "CREATE": "/configuration/v2/wlan",
         "CREATE_FULL": "/configuration/full_wlan",
         "DELETE": "/configuration/v1/wlan",

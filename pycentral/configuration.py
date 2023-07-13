@@ -942,3 +942,27 @@ class Wlan(object):
         path = urlJoin(urls.WLAN["UPDATE"], group_name, wlan_name)
         resp = conn.command(apiMethod="PUT", apiPath=path, apiData=wlan_data)
         return resp
+
+    def get_all_wlans(self, conn, group_name):
+        """
+        Update an existing WLAN using the full_wlan endpoint. Used for complex
+        configurations not supported by "/configuration/v2/wlan".
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Group name of the group or guid of the swarm or
+            serial number of 10x AP
+        :type group_name: str
+        :param wlan_name: Name string for new WLAN
+        :type wlan_name: str
+        :param wlan_data: Data to update existing wlan.
+        :type wlan_data: json
+
+        :return: Response as provided by 'command' function in class:
+            `pycentral.ArubaCentralBase`.
+        :rtype: dict
+        """
+        path = urlJoin(urls.WLAN["GET"], group_name)
+        resp = conn.command(apiMethod="GET", apiPath=path)
+        return resp
