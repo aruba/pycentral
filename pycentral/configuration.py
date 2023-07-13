@@ -963,6 +963,6 @@ class Wlan(object):
             `pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urlJoin(urls.WLAN["GET"], group_name)
+        path = urlJoin(urls.WLAN["GET_ALL"], group_name)
         resp = conn.command(apiMethod="GET", apiPath=path)
         return resp
