@@ -416,7 +416,6 @@ class ArubaCentralBase:
             self.storeToken(token)
         else:
             self.logger.error("Failed to get API access token")
-            # sys.exit("exiting...")
 
     def getToken(self):
         """This function attempts to obtain token from storage/cache otherwise creates new access token.
