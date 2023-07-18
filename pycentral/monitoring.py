@@ -144,8 +144,9 @@ class Sites(object):
         resp = conn.command(apiMethod="DELETE", apiPath=path)
         return resp
 
-    def associate_devices(self, conn, site_id, device_type, device_id):
-        """Associate a device to a site
+    
+    def associate_devices(self, conn, site_id, device_type, device_ids):
+        """Associate multiple devices to a site
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
@@ -154,23 +155,21 @@ class Sites(object):
         :type site_id: int
         :param device_type: Type of the device. One of the "IAP", "ArubaSwitch", "CX", "MobilityController".
         :type device_type: str
-        :param device_id: Aruba device serial number
-        :type device_id: str
+        :param device_ids: List of Aruba devices' serial number
+        :type device_ids: list
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = None
-        if isinstance(device_id, str):
-            path = urls.SITES["ADD_DEVICE"]
-        else:
-            path = urls.SITES["ADD_DEVICES"]
-
-        data = self._build_site_device_payload(site_id=site_id, device_type=device_type,
-                                               device_id=device_id)
+        path = urls.SITES["ADD_DEVICES"]
+        if isinstance(device_ids, str):
+            device_ids = [device_ids]
+        data = self._build_site_devices_payload(site_id=site_id, device_type=device_type,
+                                               device_ids=device_ids)
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
 
-    def unassociate_devices(self, conn, site_id, device_type, device_id):
+    
+    def unassociate_devices(self, conn, site_id, device_type, device_ids):
         """Unassociate a device from a site
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
@@ -185,13 +184,11 @@ class Sites(object):
         :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
         """
-        path = None
-        if isinstance(device_id, str):
-            path = urls.SITES["DELETE_DEVICE"]
-        else:
-            path = urls.SITES["DELETE_DEVICES"]
-        data = self._build_site_device_payload(site_id=site_id, device_type=device_type,
-                                               device_id=device_id)
+        path = urls.SITES["DELETE_DEVICES"]
+        if isinstance(device_ids, str):
+            device_ids = [device_ids]
+        data = self._build_site_devices_payload(site_id=site_id, device_type=device_type,
+                                               device_ids=device_ids)
         resp = conn.command(apiMethod="DELETE", apiPath=path, apiData=data)
         return resp
 
@@ -256,23 +253,22 @@ class Sites(object):
             payload_json["geolocation"] = geolocation
         return payload_json
 
-    def _build_site_device_payload(self, site_id, device_type, device_id):
-        """HTTP payload for device in a site
+    def _build_site_devices_payload(self, site_id, device_type, device_ids):
+        """HTTP payload for device(s) in a site
 
         :param site_id: ID assigned by Aruba Central when the site is created. Can be obtained
             from find_site_id function.
         :type site_id: int
         :param device_type: Type of the device. One of the "IAP", "ArubaSwitch", "CX", "MobilityController".
         :type device_type: str
-        :param device_id: Aruba device serial number
-        :type device_id: str
-        :return: HTTP payload for device in a site
+        :param device_ids: List of Aruba devices' serial number
+        :type device_ids: list
+        :return: HTTP payload for devices in a site
         :rtype: dict
         """
         payload_json = {
             "site_id": site_id,
             "device_type": device_type,
-            "device_id": device_id
+            "device_ids": device_ids
         }
-
         return payload_json
