@@ -939,7 +939,7 @@ class Wlan(object):
             `pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urlJoin(urls.WLAN["UPDATE"], group_name, wlan_name)
+        path = urlJoin(urls.WLAN["UPDATE_FULL"], group_name, wlan_name)
         resp = conn.command(apiMethod="PUT", apiPath=path, apiData=wlan_data)
         return resp
 
