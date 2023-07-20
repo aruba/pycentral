@@ -416,7 +416,6 @@ class ArubaCentralBase:
             self.storeToken(token)
         else:
             self.logger.error("Failed to get API access token")
-            # sys.exit("exiting...")
 
     def getToken(self):
         """This function attempts to obtain token from storage/cache otherwise creates new access token.
@@ -482,9 +481,7 @@ class ArubaCentralBase:
             self.logger.error(str1 + str2)
 
     def command(self, apiMethod, apiPath, apiData={}, apiParams={},
-                headers={}, files={}, retry_api_call=True):
-    # def command(self, apiMethod, apiPath, apiData={}, apiParams={},
-                # headers={}, files={}): USE THIS instead of above
+                headers={}, files={}):
         """This function calls requestURL to make an API call to Aruba Central after gathering parameters required for API call.
         When an API call fails with HTTP 401 error code, the same API call is retried once after an attempt to refresh access token or
         create new access token is made.
@@ -504,8 +501,6 @@ class ArubaCentralBase:
         :param files: Some API endpoints require a file upload instead of apiData. Provide file data in the format accepted by API
             endpoint and Python requests library, defaults to {}
         :type files: dict, optional
-        :param retry_api_call: Attempts to refresh api token and retry the api call when invalid token error is received, defaults to True
-        :type retry_api_call: bool, optional THIS PARAMETER HAS BEEN REMOVED 
         :return: HTTP response with HTTP staus_code and HTTP response payload. \n
             * keyword code: HTTP status code \n
             * keyword msg: HTTP response payload \n
@@ -531,7 +526,6 @@ class ArubaCentralBase:
                                     headers=headers, params=apiParams,
                                     files=files)
                 
-                # if resp.status_code == 401 and "invalid_token" in resp.text and retry_api_call:
                 if resp.status_code == 401 and "invalid_token" in resp.text:
                     self.logger.error("Received error 401 on requesting url "
                                     "%s with resp %s" % (str(url), str(resp.text)))
@@ -542,19 +536,19 @@ class ArubaCentralBase:
                     self.handleTokenExpiry()
                     retry += 1
 
-                elif resp.status_code == 429 and resp.headers['X-RateLimit-Remaining-second'] == 0: #check value
+                elif resp.status_code == 429 and resp.headers['X-RateLimit-Remaining-second'] == '0':
                     time.sleep(2)
                     self.logger.info("Per-second rate limit reached. Adding 2 seconds interval and retrying.")
                     if retry == self.user_retries-1:
                         limit_reached = True
                     retry +=1
 
-                elif resp.status_code == 429 and resp.headers['X-RateLimit-Remaining-day'] == 0: #check value
-                    limit_renewal = "" #check value
-                    self.logger.info("Per-day rate limit of " +str(resp.headers['X-RateLimit-Limit-day'])
-                                     + " is exhausted. Daily rate limit quota will reset at: "
-                                     + str(limit_renewal))
+                elif resp.status_code == 429 and resp.headers['X-RateLimit-Remaining-day'] == '0':
+                    self.logger.info("Per-day rate limit of " + str(resp.headers['X-RateLimit-Limit-day'])
+                                     + " is exhausted. Please check Central UI to see when the daily rate limit quota will be reset.")
                     limit_reached = True
+                else:
+                    break
 
             result = {
                         "code": resp.status_code,
