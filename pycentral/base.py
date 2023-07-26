@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import json, re, os, sys
+import json, re, os, sys, time
 import requests
 import errno
 from pycentral.base_utils import tokenLocalStoreUtil
@@ -66,13 +66,15 @@ class ArubaCentralBase:
     :param token_store: Placeholder for future development which provides options to secrely cache and \
         reuse access tokens. defaults to None
     :type token_store: dict, optional
+    :param user_retries: Number of times API call should be retried after a rate-limit error HTTP 429 occurs.
+    :type user_retries: int, optional
     :param logger: Provide an instance of class:`logging.logger`, defaults to logger class with name "ARUBA_BASE".
     :type logger: class:`logging.logger`, optional
     :param ssl_verify: When set to True, validates SSL certs of Aruba Central API Gateway, defaults to True
     :type ssl_verify: bool, optional
     """
     def __init__(self, central_info, token_store=None,
-                 logger=None, ssl_verify=True):
+                 logger=None, ssl_verify=True, user_retries=10):
         """Constructor Method initializes access token. If user provides access token, use the access
         token for API calls. Otherwise try to reuse token from cache or try to generate
         new access token via OAUTH 2.0. Terminates the program if unable to initialize the access token.
@@ -81,6 +83,7 @@ class ArubaCentralBase:
         self.token_store = token_store
         self.logger = None
         self.ssl_verify = ssl_verify
+        self.user_retries = user_retries
         # Set logger
         if logger:
             self.logger = logger
@@ -413,7 +416,6 @@ class ArubaCentralBase:
             self.storeToken(token)
         else:
             self.logger.error("Failed to get API access token")
-            sys.exit("exiting...")
 
     def getToken(self):
         """This function attempts to obtain token from storage/cache otherwise creates new access token.
@@ -479,7 +481,7 @@ class ArubaCentralBase:
             self.logger.error(str1 + str2)
 
     def command(self, apiMethod, apiPath, apiData={}, apiParams={},
-                headers={}, files={}, retry_api_call=True):
+                headers={}, files={}):
         """This function calls requestURL to make an API call to Aruba Central after gathering parameters required for API call.
         When an API call fails with HTTP 401 error code, the same API call is retried once after an attempt to refresh access token or
         create new access token is made.
@@ -499,50 +501,68 @@ class ArubaCentralBase:
         :param files: Some API endpoints require a file upload instead of apiData. Provide file data in the format accepted by API
             endpoint and Python requests library, defaults to {}
         :type files: dict, optional
-        :param retry_api_call: Attempts to refresh api token and retry the api call when invalid token error is received, defaults to True
-        :type retry_api_call: bool, optional
         :return: HTTP response with HTTP staus_code and HTTP response payload. \n
             * keyword code: HTTP status code \n
             * keyword msg: HTTP response payload \n
-            * keyword headers: HTTP response headers \n
         :rtype: dict
         """
         retry = 0
         result = ''
         method = apiMethod
-        while retry <= 1:
-            if not retry_api_call:
-                retry = 100
-            url = get_url(self.central_info["base_url"], apiPath, query=apiParams)
-            if not headers and not files:
-                headers = {
-                            "Content-Type": "application/json",
-                            "Accept": "application/json"
-                          }
-            if apiData and headers['Content-Type'] == "application/json":
-                apiData = json.dumps(apiData)
+        limit_reached = False
+        self.user_retries
+        try:
+            while not limit_reached:
+                url = get_url(self.central_info["base_url"], apiPath, query=apiParams)
+                if not headers and not files:
+                    headers = {
+                                "Content-Type": "application/json",
+                                "Accept": "application/json"
+                            }
+                if apiData and headers['Content-Type'] == "application/json":
+                    apiData = json.dumps(apiData)
 
-            resp = self.requestUrl(url=url, data=apiData, method=method,
-                                   headers=headers, params=apiParams,
-                                   files=files)
-            try:
-                if resp.status_code == 401 and "invalid_token" in resp.text and retry_api_call:
+                resp = self.requestUrl(url=url, data=apiData, method=method,
+                                    headers=headers, params=apiParams,
+                                    files=files)
+                
+                if resp.status_code == 401 and "invalid_token" in resp.text:
                     self.logger.error("Received error 401 on requesting url "
-                                      "%s with resp %s" % (str(url), str(resp.text)))
-                    if retry < 1:
-                        self.handleTokenExpiry()
+                                    "%s with resp %s" % (str(url), str(resp.text)))
+
+                    if retry >= 1:
+                        limit_reached = True
+                        break
+                    self.handleTokenExpiry()
                     retry += 1
+
+                elif resp.status_code == 429 and resp.headers['X-RateLimit-Remaining-second'] == '0':
+                    time.sleep(2)
+                    self.logger.info("Per-second rate limit reached. Adding 2 seconds interval and retrying.")
+                    if retry == self.user_retries-1:
+                        limit_reached = True
+                    retry +=1
+
+                elif resp.status_code == 429 and resp.headers['X-RateLimit-Remaining-day'] == '0':
+                    self.logger.info("Per-day rate limit of " + str(resp.headers['X-RateLimit-Limit-day'])
+                                     + " is exhausted. Please check Central UI to see when the daily rate limit quota will be reset.")
+                    limit_reached = True
                 else:
-                    result = {
-                                "code": resp.status_code,
-                                "msg": resp.text,
-                                "headers": dict(resp.headers)
-                             }
-                    try:
-                        result["msg"] = json.loads(result["msg"])
-                    except:
-                        pass
-                    return result
-            except Exception as err:
-                self.logger.error(err)
-                exit("exiting...")
+                    break
+
+            result = {
+                        "code": resp.status_code,
+                        "msg": resp.text,
+                        "headers": dict(resp.headers)
+                        }
+            
+            try:
+                result["msg"] = json.loads(result["msg"])
+            except:
+                result["msg" ] = str(resp.text)
+
+            return result
+        
+        except Exception as err:
+            self.logger.error(err)
+            exit("exiting...")
