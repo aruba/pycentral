@@ -205,12 +205,12 @@ class Subscriptions(object):
         """
         path = urls.SUBSCRIPTIONS["ASSIGN_LIC_MSP"]
         data = {
-                "services": services
+            "services": services
         }
         if include_customers:
-            data["params"]["include_customers"] = include_customers
+            data["include_customers"] = include_customers
         if exclude_customers:
-            data["params"]["exclude_customers"] = exclude_customers
+            data["exclude_customers"] = exclude_customers
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
 
@@ -237,12 +237,12 @@ class Subscriptions(object):
         """
         path = urls.SUBSCRIPTIONS["UNASSIGN_LIC_MSP"]
         data = {
-                "services": services
+            "services": services
         }
         if include_customers:
-            data["params"]["include_customers"] = include_customers
+            data["include_customers"] = include_customers
         if exclude_customers:
-            data["params"]["exclude_customers"] = exclude_customers
+            data["exclude_customers"] = exclude_customers
         resp = conn.command(apiMethod="DELETE", apiPath=path, apiData=data)
         return resp
 
@@ -319,12 +319,12 @@ class AutoLicense(object):
         """
         path = urls.AUTO_LICENSE["DISABLE_LIC_SVC_MSP"]
         data = {
-                "services": services
+            "services": services
         }
         if include_customers:
-            data["params"]["include_customers"] = include_customers
+            data["include_customers"] = include_customers
         if exclude_customers:
-            data["params"]["exclude_customers"] = exclude_customers
+            data["exclude_customers"] = exclude_customers
         resp = conn.command(apiMethod="DELETE", apiPath=path, apiData=data)
         return resp
 
@@ -370,12 +370,12 @@ class AutoLicense(object):
         """
         path = urls.AUTO_LICENSE["ASSIGN_LIC_SVC_MSP"]
         data = {
-                "services": services
+            "services": services
         }
         if include_customers:
-            data["params"]["include_customers"] = include_customers
+            data["include_customers"] = include_customers
         if exclude_customers:
-            data["params"]["exclude_customers"] = exclude_customers
+            data["exclude_customers"] = exclude_customers
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
 
