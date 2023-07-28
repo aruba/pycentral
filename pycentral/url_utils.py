@@ -71,6 +71,17 @@ class ConfigurationUrl():
         "REPLACE_ALL": "/configuration/v1/devices/template_variables"
     }
 
+    WLAN = {
+        "GET": "/configuration/full_wlan",
+        "GET_ALL": "/configuration/v1/wlan",
+        "CREATE": "/configuration/v2/wlan",
+        "CREATE_FULL": "/configuration/full_wlan",
+        "DELETE": "/configuration/v1/wlan",
+        "UPDATE": "/configuration/v2/wlan",
+        "UPDATE_FULL": "/configuration/full_wlan"
+    }
+
+
 class LicensingUrl():
     SUBSCRIPTIONS = {
         "GET_KEYS": "/platform/licensing/v1/subscriptions",
