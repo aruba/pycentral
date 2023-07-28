@@ -818,7 +818,8 @@ class Wlan(object):
     via REST API.
     """
     def create_wlan(self, conn, group_name, wlan_name, wlan_data):
-        """Create new WLAN
+        """
+        Create new WLAN.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
             API call.
@@ -844,6 +845,7 @@ class Wlan(object):
             * keyword bandwidth_limit_peruser_up: peruser mb up
             * keyword bandwidth_limit_peruser_down: peruser mb down
             * keyword access_rules: dict
+        :type wlan_data: dict(json)
 
         :return: Response as provided by 'command' function in class:
             `pycentral.ArubaCentralBase`.
@@ -854,8 +856,10 @@ class Wlan(object):
         return resp
 
     def create_full_wlan(self, conn, group_name, wlan_name, wlan_data):
-        """Create new WLAN using the full_wlan endpoint. Used for complex
-        configurations not supported by "/configuration/v2/wlan".
+        """
+        Create new WLAN using the full_wlan endpoint
+        "/configuration/full_wlan/". Used for complex configurations not
+        supported by create_wlan.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
             API call.
@@ -866,7 +870,7 @@ class Wlan(object):
         :param wlan_name: Name string for new WLAN
         :type wlan_name: str
         :param wlan_data: Data to create new WLAN
-        :type wlan_data: json
+        :type wlan_data: dict(json)
 
         :return: Response as provided by 'command' function in class:
             `pycentral.ArubaCentralBase`.
@@ -877,15 +881,16 @@ class Wlan(object):
         return resp
 
     def delete_wlan(self, conn, group_name, wlan_name):
-        """Delete an existing WLAN
+        """
+        Delete an existing WLAN.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
             API call.
         :type conn: class:`pycentral.ArubaCentralBase`
         :param group_name: Group name of the group or guid of the swarm or
-            serial number of 10x AP
+            serial number of 10x AP.
         :type group_name: str
-        :param wlan_name: Name string for new WLAN
+        :param wlan_name: Name of WLAN to delete.
         :type wlan_name: str
 
         :return: Response as provided by 'command' function in class:
@@ -909,7 +914,7 @@ class Wlan(object):
         :param wlan_name: Name string for new WLAN
         :type wlan_name: str
         :param wlan_data: Data to update existing wlan.
-        :type wlan_data: json
+        :type wlan_data: dict(json)
 
         :return: Response as provided by 'command' function in class:
             `pycentral.ArubaCentralBase`.
@@ -921,8 +926,9 @@ class Wlan(object):
 
     def update_full_wlan(self, conn, group_name, wlan_name, wlan_data):
         """
-        Update an existing WLAN using the full_wlan endpoint. Used for complex
-        configurations not supported by "/configuration/v2/wlan".
+        Update an existing WLAN using the full_wlan endpoint
+        "/configuration/full_wlan/". Used for complex configurations
+        not supported by update_wlan.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
             API call.
@@ -933,7 +939,7 @@ class Wlan(object):
         :param wlan_name: Name string for new WLAN
         :type wlan_name: str
         :param wlan_data: Data to update existing wlan.
-        :type wlan_data: json
+        :type wlan_data: dict(json)
 
         :return: Response as provided by 'command' function in class:
             `pycentral.ArubaCentralBase`.
