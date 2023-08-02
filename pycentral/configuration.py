@@ -815,7 +815,8 @@ class ApSettings(object):
 
 class APConfiguration(object):
     """
-    A python class to manage Aruba Central access points.
+    A python class to manage Aruba Central access points with API's from
+    the AP configuration category.
     """
 
     def get_ap_config(self, conn, group_name):
