@@ -811,3 +811,179 @@ class ApSettings(object):
         data = ap_settings_data
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
+
+
+class Wlan(object):
+    """A python class consisting of functions to manage Aruba Central WLANs
+    via REST API.
+    """
+    def create_wlan(self, conn, group_name, wlan_name, wlan_data):
+        """
+        Create new WLAN.
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Name of  Aruba Central group to create new WLAN
+            inside.
+        :type group_name: str
+        :param wlan_name: Name string for new WLAN
+        :type wlan_name: str
+        :param wlan_data: Data to create new WLAN
+            * keyword essid: SSID name
+            * keyword type: type designation for new SSID
+            * keyword hide_ssid: boolean to hide SSID
+            * keyword vlan: vlan to add new SSID to
+            * keyword zone: vlan zones to add SSID to
+            * keyword opmode: SSID security opmode
+            * keyword wpa_passphrase: Passphrase for SSID
+            * keyword wpa_passphrase_changed: Should always be set true
+            * keyword is_locked: Boolean
+            * keyword captive_profile_name: name for users using captive portal
+            * keyword bandwidth_limit_up: mb up
+            * keyword bandwidth_limit_down: mb down
+            * keyword bandwidth_limit_peruser_up: peruser mb up
+            * keyword bandwidth_limit_peruser_down: peruser mb down
+            * keyword access_rules: dict
+        :type wlan_data: dict(json)
+
+        :return: Response as provided by 'command' function in class:
+            `pycentral.ArubaCentralBase`.
+        :rtype: dict
+        """
+        path = urlJoin(urls.WLAN["CREATE"], group_name, wlan_name)
+        resp = conn.command(apiMethod="POST", apiPath=path, apiData=wlan_data)
+        return resp
+
+    def create_full_wlan(self, conn, group_name, wlan_name, wlan_data):
+        """
+        Create new WLAN using the full_wlan endpoint
+        "/configuration/full_wlan/". Used for complex configurations not
+        supported by create_wlan.
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Name of  Aruba Central group to create new WLAN
+            inside.
+        :type group_name: str
+        :param wlan_name: Name string for new WLAN
+        :type wlan_name: str
+        :param wlan_data: Data to create new WLAN
+        :type wlan_data: dict(json)
+
+        :return: Response as provided by 'command' function in class:
+            `pycentral.ArubaCentralBase`.
+        :rtype: dict
+        """
+        path = urlJoin(urls.WLAN["CREATE_FULL"], group_name, wlan_name)
+        resp = conn.command(apiMethod="POST", apiPath=path, apiData=wlan_data)
+        return resp
+
+    def delete_wlan(self, conn, group_name, wlan_name):
+        """
+        Delete an existing WLAN.
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Group name of the group or guid of the swarm or
+            serial number of 10x AP.
+        :type group_name: str
+        :param wlan_name: Name of WLAN to delete.
+        :type wlan_name: str
+
+        :return: Response as provided by 'command' function in class:
+            `pycentral.ArubaCentralBase`.
+        :rtype: dict
+        """
+        path = urlJoin(urls.WLAN["DELETE"], group_name, wlan_name)
+        resp = conn.command(apiMethod="DELETE", apiPath=path)
+        return resp
+
+    def update_wlan(self, conn, group_name, wlan_name, wlan_data):
+        """
+        Update an existing WLAN.
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Group name of the group or guid of the swarm or
+            serial number of 10x AP
+        :type group_name: str
+        :param wlan_name: Name string for new WLAN
+        :type wlan_name: str
+        :param wlan_data: Data to update existing wlan.
+        :type wlan_data: dict(json)
+
+        :return: Response as provided by 'command' function in class:
+            `pycentral.ArubaCentralBase`.
+        :rtype: dict
+        """
+        path = urlJoin(urls.WLAN["UPDATE"], group_name, wlan_name)
+        resp = conn.command(apiMethod="PUT", apiPath=path, apiData=wlan_data)
+        return resp
+
+    def update_full_wlan(self, conn, group_name, wlan_name, wlan_data):
+        """
+        Update an existing WLAN using the full_wlan endpoint
+        "/configuration/full_wlan/". Used for complex configurations
+        not supported by update_wlan.
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Group name of the group or guid of the swarm or
+            serial number of 10x AP
+        :type group_name: str
+        :param wlan_name: Name string for new WLAN
+        :type wlan_name: str
+        :param wlan_data: Data to update existing wlan.
+        :type wlan_data: dict(json)
+
+        :return: Response as provided by 'command' function in class:
+            `pycentral.ArubaCentralBase`.
+        :rtype: dict
+        """
+        path = urlJoin(urls.WLAN["UPDATE_FULL"], group_name, wlan_name)
+        resp = conn.command(apiMethod="PUT", apiPath=path, apiData=wlan_data)
+        return resp
+
+    def get_wlan(self, conn, group_name, wlan_name):
+        """
+        Gets full configuration of a WLAN in a Central group.
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Group name of the group or guid of the swarm.
+        :type group_name: str
+        :param wlan_name: Name string for wlan to get.
+        :type wlan_name: str
+
+        :return: Response as provided by 'command' function in class:
+            `pycentral.ArubaCentralBase`.
+        :rtype: dict
+        """
+
+        path = urlJoin(urls.WLAN["GET"], group_name, wlan_name)
+        resp = conn.command(apiMethod="GET", apiPath=path)
+        return resp
+
+    def get_all_wlans(self, conn, group_name):
+        """
+        Gets a list of each wlan in a Central group.
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Group name of the group or guid of the swarm.
+        :type group_name: str
+
+        :return: Response as provided by 'command' function in class:
+            `pycentral.ArubaCentralBase`.
+        :rtype: dict
+        """
+        path = urlJoin(urls.WLAN["GET_ALL"], group_name)
+        resp = conn.command(apiMethod="GET", apiPath=path)
+        return resp
