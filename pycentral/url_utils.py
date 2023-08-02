@@ -38,7 +38,7 @@ class ConfigurationUrl():
 
     AP_CONFIGURATION = {
         "GET": "/configuration/v1/ap_cli",
-        "REPLACE": "/configuration/v1/ap_settings_cli"
+        "REPLACE": "/configuration/v1/ap_cli"
     }
 
     GROUPS = {
