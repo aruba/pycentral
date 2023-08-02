@@ -813,7 +813,7 @@ class ApSettings(object):
         return resp
 
 
-class APConfiguration(object):
+class ApConfiguration(object):
     """
     A python class to manage Aruba Central access points with API's from
     the AP configuration category.
