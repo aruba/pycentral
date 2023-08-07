@@ -1,14 +1,6 @@
 pycentral.workflows package
 ===========================
 
-pycentral.workflows.config\_apsettings\_from\_csv module
---------------------------------------------------------
-
-.. automodule:: pycentral.workflows.config_apsettings_from_csv
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 pycentral.workflows.workflows\_utils module
 -------------------------------------------
 

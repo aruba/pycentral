@@ -48,10 +48,10 @@ pycentral.configuration module
    :undoc-members:
    :show-inheritance:
 
-pycentral.constants module
---------------------------
+pycentral.device_inventory module
+---------------------------------
 
-.. automodule:: pycentral.constants
+.. automodule:: pycentral.device_inventory
    :members:
    :undoc-members:
    :show-inheritance:
