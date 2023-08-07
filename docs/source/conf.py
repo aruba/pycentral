@@ -13,8 +13,9 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('../../pycentral/pycentral/workflows'))
+
 sys.path.insert(0, os.path.abspath('../../pycentral/pycentral'))
+sys.path.insert(0, os.path.abspath('../../pycentral/pycentral/workflows'))
 sys.path.insert(0, os.path.abspath('../../pycentral/'))
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('../../'))
@@ -22,11 +23,11 @@ sys.path.insert(0, os.path.abspath('../../'))
 # -- Project information -----------------------------------------------------
 
 project = 'pycentral'
-copyright = '2020 Aruba, a Hewlett Packard Enterprise company'
+copyright = '2023 Aruba, a Hewlett Packard Enterprise company'
 author = 'aruba-automation@hpe.com'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.2'
+release = '1.0.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -37,7 +38,7 @@ autosummary_generate=True
 # ones.
 extensions = [
 	'sphinx_rtd_theme', 'sphinx.ext.autodoc', 'sphinx.ext.coverage',
-	'sphinx.ext.autosummary', 'recommonmark'
+	'sphinx.ext.autosummary'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -59,7 +60,7 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+# html_static_path = ['_static']
 
 # Required to make the ReadtheDocs integration work with Github
 master_doc = 'index'
