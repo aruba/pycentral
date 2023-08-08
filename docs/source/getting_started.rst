@@ -48,12 +48,6 @@ workflows
 modules to achieve a network automation use-case involving multiple steps or repetitive actions that has to be done in scale. \
 Each script contains comments that describe step-by-step the operations being performed. 
 
-Executing scripts
-^^^^^^^^^^^^^^^^^
-
-Refer `Aruba's Developer Hub <https://developer.arubanetworks.com/aruba-central/docs>` for the sample scripts written using \
-``pycentral`` modules and ``pycentral.workflows`` workflows. 
-
 Check out the `central-python-workflows <https://github.com/aruba/central-python-workflows>`_ repository for workflows that utilize the Pycentral library. Some of the workflows are - 
 
 1. `Device Provisioning <https://github.com/aruba/central-python-workflows/tree/main/device_provisioning>`_
@@ -65,5 +59,11 @@ Check out the `central-python-workflows <https://github.com/aruba/central-python
 4. `Inventory to Excel Workflows <https://github.com/aruba/central-python-workflows/tree/main/inventory_to_excel>`_
 
 5. `WLAN Workflows <https://github.com/aruba/central-python-workflows/tree/main/wlan_config>`_
+
+Executing scripts
+^^^^^^^^^^^^^^^^^
+
+Refer `Aruba's Developer Hub <https://developer.arubanetworks.com/aruba-central/docs>`_ for the sample scripts written using \
+``pycentral`` modules and ``pycentral.workflows`` workflows. 
 
 .. Important:: For more information about Aruba Central and REST APIs visit Aruba Central's page in `Aruba Developer Hub <https://developer.arubanetworks.com>`_.
