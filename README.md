@@ -33,11 +33,13 @@ Now you can start making your script based on modules in pycentral or use differ
 
 1. Gathering variables required for the package base class `ArubaCentralBase`.
 
-    * **base_url**: Go to `Account Home -> API Gateway -> APIs`. *All Published APs Table* will show URL under *DOCUMENTATION* column. Truncate this to end with '.com' E.G. 'https://apigw-prod2.central.arubanetworks.com/swagger/central/' must be truncated to 'https://apigw-prod2.central.arubanetworks.com'.
+    * **base_url**: You can find the base URL of the Central account's API Gateway from the table [here](https://www.arubanetworks.com/techdocs/central/latest/content/nms/api/domain_url.htm). The base URL is based on the geographical Central cluster in which the account is registered.
 
     * **client_id** and **client_secret**: Obtain client_id and client_secret variables by creating an API Gateway client in Aruba Central. Refer the following [documentation](https://developer.arubanetworks.com/aruba-central/docs/api-gateway-creating-application-token) for more details.
 
-        At this point, create an API access token from the API Gateway WebUI as described in the above documentation or go further to collect other variables for the Python base class to create/manage access_token via **OAUTH APIs.**
+   * **access_token**: You can create an API access token for Aruba Central from -
+      * [Aruba Central UI](https://developer.arubanetworks.com/aruba-central/docs/api-gateway-obtaining-access-tokens#obtain-access-token-via-web-ui)
+      * [OAuth APIs](https://developer.arubanetworks.com/aruba-central/docs/api-oauth-access-token) 
 
     * **customer_id**: Obtain the **customer_id** by clicking on the figure icon on top right corner of Aruba Central WebUI.
 
@@ -85,14 +87,12 @@ Now you can start making your script based on modules in pycentral or use differ
 
     To obtain a list of implemented modules and its documentation refer the [pycentral module documentation](https://pycentral.readthedocs.io/en/latest/).
 
-5. **Using pycentral workflows**: Workflows are used to achieve an automation use-case which generally involves multiple API calls or dealing with scale and repetitive tasks with ease. Refer the sample script using workflows [sample_scripts/pycentral_workflow_sample.py](sample_scripts/pycentral_workflow_sample.py).
-
-    Check out the [central-python-workflows](https://github.com/aruba/central-python-workflows) repository to check out workflows that utilize the Pycentral library.
+5. **Workflows**: Workflows are used to achieve an automation use-case which generally involves multiple API calls or dealing with scale and repetitive tasks with ease. Check out the [central-python-workflows](https://github.com/aruba/central-python-workflows) repository to check out workflows that utilize the Pycentral library.
 
 ## Documentation:
 * **Python package documentation:** [pycentral module documentation](https://pycentral.readthedocs.io/en/latest/)
 * **Use-Cases and Workflows:**
-  - [Aruba Developer Hub](https://developer.arubanetworks.com/aruba-central)
+  - [Aruba Developer Hub](https://developer.arubanetworks.com/aruba-central/docs/python-getting-started)
   - [central-python-workflows](https://github.com/aruba/central-python-workflows)
 
 ## Note:
