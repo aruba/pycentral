@@ -119,11 +119,3 @@ pycentral.visualrf module
    :members:
    :undoc-members:
    :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: pycentral
-   :members:
-   :undoc-members:
-   :show-inheritance:
