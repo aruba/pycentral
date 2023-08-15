@@ -29,10 +29,16 @@ class RefreshUrl(object):
         "REFRESH": "/oauth2/token"
     }
 
+
 class ConfigurationUrl():
     AP_SETTINGS = {
         "GET": "/configuration/v2/ap_settings",
         "UPDATE": "/configuration/v2/ap_settings"
+    }
+
+    AP_CONFIGURATION = {
+        "GET": "/configuration/v1/ap_cli",
+        "REPLACE": "/configuration/v1/ap_cli"
     }
 
     GROUPS = {
