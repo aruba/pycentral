@@ -1,4 +1,13 @@
-# 1.0.0
+# 1.1.0
+
+## Notable Changes
+* Added APConfiguration Class to Configuration Module
+* Updated Documentation links
+
+## Known Issues
+* No known issues.
+  
+* # 1.0.0
 
 ## Notable Changes
 * Added wait & retry logic when Aruba Central's Per-Second API rate-limit is hit
