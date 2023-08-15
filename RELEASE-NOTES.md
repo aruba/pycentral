@@ -1,4 +1,4 @@
-# 1.1.0
+* # 1.1.0
 
 ## Notable Changes
 * Added APConfiguration Class to Configuration Module
