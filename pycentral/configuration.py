@@ -813,6 +813,49 @@ class ApSettings(object):
         return resp
 
 
+class ApConfiguration(object):
+    """
+    A python class to manage Aruba Central access points with API's from
+    the AP configuration category.
+    """
+
+    def get_ap_config(self, conn, group_name):
+        """
+        Get whole configuration in CLI format of an UI group or AOS10 device.
+
+        :param group_name: Central group name or AOS10 AP serial number.
+        :type group_name: str
+
+        :return: Response as provided by 'command' function in class:
+            `pycentral.ArubaCentralBase`.
+        :rtype: dict
+        """
+        path = urlJoin(urls.AP_CONFIGURATION["GET"], group_name)
+        resp = conn.command(apiMethod="GET", apiPath=path)
+
+        return resp
+
+    def replace_ap(self, conn, group_name, data):
+        """
+        Replace whole configuration for a Central UI group or AOS10 device.
+        Configuration is in CLI format.
+
+        :param group_name: Central group name or AOS10 AP serial number.
+        :type group_name: str
+        :param data: AP CLI configuration commands. Format for json value
+            is a list of CLI command strings.
+        :type data: json
+
+        :return: Response as provided by 'command' function in class:
+            `pycentral.ArubaCentralBase`.
+        :rtype: dict
+        """
+        path = urlJoin(urls.AP_CONFIGURATION["REPLACE"], group_name)
+        resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
+
+        return resp
+
+
 class Wlan(object):
     """A python class consisting of functions to manage Aruba Central WLANs
     via REST API.
