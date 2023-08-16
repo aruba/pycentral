@@ -1,8 +1,15 @@
+* # 1.1.1
+
+## Notable Changes
+* Updated README links
+
+## Known Issues
+* No known issues.
+  
 * # 1.1.0
 
 ## Notable Changes
 * Added APConfiguration Class to Configuration Module
-* Updated Documentation links
 
 ## Known Issues
 * No known issues.

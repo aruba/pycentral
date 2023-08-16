@@ -74,16 +74,16 @@ Now you can start making your script based on modules in pycentral or use differ
 
         Refer the sample scripts in *step3* and *step4* for examples.
 
-    * **OR** Provide the required variables using JSON/YAML file. Refer input files [sample_scripts/input_token_only.yaml](sample_scripts/input_token_only.yaml) and [sample_scripts/input_credentials.yaml](sample_scripts/input_credentials.yaml) for information.
+    * **OR** Provide the required variables using JSON/YAML file. Refer input files [sample_scripts/input_token_only.yaml](https://github.com/aruba/pycentral/blob/master/sample_scripts/input_token_only.yaml)and [sample_scripts/input_credentials.yaml](https://github.com/aruba/pycentral/blob/master/sample_scripts/input_credentials.yaml) for information.
 
         Use `pycentral.workflows_utils.get_conn_from_file()` function which accepts name of the file and returns
         the `ArubaCentralBase` instance object. Refer the sample script in *step5* for example.
 
-3. **Making API call using pycentral base**: Using the base class `ArubaCentralBase`, any Aruba Central supported REST API calls can be made. Refer the following sample script [sample_scripts/pycentral_base_sample.py](sample_scripts/pycentral_base_sample.py).
+3. **Making API call using pycentral base**: Using the base class `ArubaCentralBase`, any Aruba Central supported REST API calls can be made. Refer the following sample script [sample_scripts/pycentral_base_sample.py](https://github.com/aruba/pycentral/blob/master/sample_scripts/pycentral_base_sample.py)
 
     Obtain the HTTP Request related information from Aruba Central Swagger documentation or [API references](https://developer.arubanetworks.com/aruba-central/reference) page in Aruba Developer Hub.
 
-4. **Making API call using pycentral modules**: Some API endpoints supported by Aruba Central are implemented as modules in the Python package. Refer the following sample script using modules [sample_scripts/pycentral_module_sample.py](sample_scripts/pycentral_module_sample.py).
+4. **Making API call using pycentral modules**: Some API endpoints supported by Aruba Central are implemented as modules in the Python package. Refer the following sample script using modules [sample_scripts/pycentral_module_sample.py](https://github.com/aruba/pycentral/blob/master/sample_scripts/pycentral_module_sample.py)
 
     To obtain a list of implemented modules and its documentation refer the [pycentral module documentation](https://pycentral.readthedocs.io/en/latest/).
 
@@ -105,9 +105,9 @@ Now you can start making your script based on modules in pycentral or use differ
  * **Access Token**: This process is more secure. By providing only the *access_token* instead of credentials, the package will not cache the tokens. But loses the ability to handle expired token and to generate new access tokens.
 
 ## How to contribute
-Please see the accompanying [CONTRIBUTIONS.md](CONTRIBUTIONS.md) file for guidelines on how to contribute to this repository.
+Please see the accompanying [CONTRIBUTIONS.md](https://github.com/aruba/pycentral/blob/master/CONTRIBUTIONS.md) file for guidelines on how to contribute to this repository.
 
 ## Troubleshooting Issues
 If you encounter module import errors, make sure that the package has been installed correctly.
 
-Additionally, please read the [RELEASE-NOTES.md](RELEASE-NOTES.md) file for the current release information and known issues.
+Additionally, please read the [RELEASE-NOTES.md](https://github.com/aruba/pycentral/blob/master/RELEASE-NOTES.md) file for the current release information and known issues.
