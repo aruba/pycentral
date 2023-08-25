@@ -212,5 +212,8 @@ class MonitoringUrl():
 
 class InventoryUrl():
     DEVICES = {
-        "GET_DEVICES": "/platform/device_inventory/v1/devices"
+        "GET_DEVICES": "/platform/device_inventory/v1/devices",
+        "ARCHIVE_DEVICES": "/platform/device_inventory/v1/devices/archive",
+        "UNARCHIVE_DEVICES": "/platform/device_inventory/v1/devices/unarchive",
+        "ADD_DEVICE": "/platform/device_inventory/v1/devices"
     }
