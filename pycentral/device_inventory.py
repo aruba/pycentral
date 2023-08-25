@@ -69,3 +69,24 @@ class Inventory(object):
 
         resp = conn.command(apiMethod="GET", apiPath=path, apiParams=params)
         return resp
+
+    def archive_devices(self, conn, device_serials=[]):
+        """Archive a list of devices using serial numbers 
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param device_serials: List of serial number of Aruba devices that should be archived
+        :type device_serials: list
+        :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
+        :rtype: dict
+        """
+        path = urls.DEVICES["ARCHIVE_DEVICES"]
+        if isinstance(device_serials, str):
+            device_serials = [device_serials]
+        if len(device_serials) > 0:
+            apiData = {
+                "serials": device_serials
+            }
+            resp = conn.command(apiMethod="POST", apiPath=path, apiData=apiData)
+            return resp
+    
