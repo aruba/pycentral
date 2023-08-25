@@ -90,3 +90,23 @@ class Inventory(object):
             resp = conn.command(apiMethod="POST", apiPath=path, apiData=apiData)
             return resp
     
+    def unarchive_devices(self, conn, device_serials=[]):
+        """Unarchive a list of devices using serial numbers 
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param device_serials: List of serial number of Aruba devices that should be unarchived
+        :type device_serials: list
+        :return: HTTP Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
+        :rtype: dict
+        """
+        path = urls.DEVICES["UNARCHIVE_DEVICES"]
+        if isinstance(device_serials, str):
+            device_serials = [device_serials]
+        if len(device_serials) > 0:
+            apiData = {
+                "serials": device_serials
+            }
+            resp = conn.command(apiMethod="POST", apiPath=path, apiData=apiData)
+            return resp
+    
