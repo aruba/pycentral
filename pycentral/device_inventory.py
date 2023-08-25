@@ -110,3 +110,18 @@ class Inventory(object):
             resp = conn.command(apiMethod="POST", apiPath=path, apiData=apiData)
             return resp
     
+    def add_devices(self, conn, device_details):
+        """Add device(s) using Mac & Serial Numbers
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param device_details: List of dictionaries with Aruba devices that should be added to the Aruba Central account
+        :type device_details: list
+        :return: HTTP Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
+        :rtype: dict
+        """        
+        if len(device_details) > 0:
+            path = urls.DEVICES["ADD_DEVICE"]
+            apiData = device_details
+            resp = conn.command(apiMethod="POST", apiPath=path, apiData=apiData)
+            return resp
