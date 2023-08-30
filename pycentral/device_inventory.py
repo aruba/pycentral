@@ -124,18 +124,31 @@ class Inventory(object):
         path = urls.DEVICES["UNARCHIVE_DEVICES"]
         if isinstance(device_serials, str):
             device_serials = [device_serials]
-        if len(device_serials) > 0:
-            apiData = {
-                "serials": device_serials
-            }
-            resp = conn.command(apiMethod="POST", apiPath=path, apiData=apiData)
-            if (resp.code == 200):
-                logger.info(f'Successfully unarchived devices with SN - {", ".join(str(device) for device in device_serials)}')
-            else:
-                logger.error(f'Failed to unarchive devices. Response code {resp.code}')
-            return resp
+        
+        if (len(device_serials)) > MAX_DEVICES:
+            logger.error('Unable to unarchive more than {MAX_DEVICES} devices per API call. Please unarchive {MAX_DEVICES} or less devices at a time.')        
+            return
+        if len(device_serials) == 0:
+            logger.error("Unable to unarchive devices since no device serial numbers were provided. Please provide atleast one device's details in the device_serials function argument.")        
+            return
+        
+        apiData = {
+            "serials": device_serials
+        }
+        resp = conn.command(apiMethod="POST", apiPath=path, apiData=apiData)
+        # Devices in the succeeded_devices list
+        successful_devices = [device["serial_number"] for device in resp['msg']['succeeded_devices']]
+        # Devices in the failed_devices list
+        failed_devices = [device["serial_number"] for device in resp['msg']['failed_devices']]
+        if (resp["code"] == 200 and len(failed_devices) == 0):
+            logger.info(f'Successfully unarchived devices with SN - {", ".join(str(device) for device in successful_devices)}')
+        elif (resp["code"] == 200 and len(failed_devices) > 0):
+            logger.error(f'Failed to unarchive devices with SN - {", ".join(str(device) for device in failed_devices)}')
+            if (len(successful_devices) > 0):
+                logger.info(f'Successfully unarchived devices with SN - {", ".join(str(device) for device in successful_devices)}')
         else:
-            logger.error('Unable to unarchive devices since no device serial numbers were provided')
+            logger.error(f'Error in API Response. Response Code - {resp["code"]}')
+        return resp
     
     def add_devices(self, conn, device_details):
         """Add device(s) using Mac & Serial Numbers
