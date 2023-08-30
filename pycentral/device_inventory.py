@@ -159,9 +159,31 @@ class Inventory(object):
         :type device_details: list
         :return: HTTP Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
-        """        
-        if len(device_details) > 0:
-            path = urls.DEVICES["ADD_DEVICE"]
-            apiData = device_details
-            resp = conn.command(apiMethod="POST", apiPath=path, apiData=apiData)
-            return resp
+        """
+        if (len(device_details)) > MAX_DEVICES:
+            logger.error('Unable to add more than {MAX_DEVICES} devices per API call. Please add {MAX_DEVICES} or less devices at a time.')        
+            return
+        if len(device_details) == 0:
+            logger.error("No device details were provided. Please provide atleast one device's details in the device_details function argument.")        
+            return
+        
+        path = urls.DEVICES["ADD_DEVICE"]
+        apiData = device_details
+        resp = conn.command(apiMethod="POST", apiPath=path, apiData=apiData)
+        if (resp["code"] == 200):
+            device_serials = [device["serial"] for device in resp['msg']['extra']['message']["available_device"]]
+            logger.info(f'Successfully added devices(with SN - {", ".join(str(device) for device in device_serials)}) to Greenlake Device Inventory.')
+        elif (resp["code"] == 400 and 'extra' in resp['msg']):
+            if (resp['msg']['extra']['error_code'] == 'ATHENA_ERROR_NO_DEVICE' and len(error_devices) > 0):
+                # Devices that were in the available_list
+                successful_devices = resp['msg']['extra']['message']["available_device"]
+                # Devices that were either on the blocked_list or invalid_list
+                error_devices = resp['msg']['extra']['message']['blocked_device'] + resp['msg']['extra']['message']['invalid_device']
+                logger.error('Some or all of the devices were not added to the device inventory.')
+                for device in error_devices:
+                    logger.error(f'Unable to add device({device["serial"]}). Reason for error - {device["ccs_message"]}')
+                for device in successful_devices:
+                    logger.info(f'Able to add device({device["serial"]}). Reason for error - {device["ccs_message"]}')
+        else:
+            logger.error(f'Error in API Response. Response Code - {resp["code"]}, Error Message - {resp["msg"]["detail"]}')
+        return resp
