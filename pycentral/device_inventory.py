@@ -88,7 +88,13 @@ class Inventory(object):
                 "serials": device_serials
             }
             resp = conn.command(apiMethod="POST", apiPath=path, apiData=apiData)
+            if (resp.code == 200):
+                logger.info(f'Successfully archived devices with SN - {", ".join(str(device) for device in device_serials)}')
+            else:
+                logger.error(f'Failed to archive devices. Response code {resp.code}')
             return resp
+        else:
+            logger.error('Unable to archive devices since no device serial numbers were provided')
     
     def unarchive_devices(self, conn, device_serials=[]):
         """Unarchive a list of devices using serial numbers 
