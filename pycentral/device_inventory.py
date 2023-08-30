@@ -21,7 +21,9 @@
 # SOFTWARE.
 
 from pycentral.url_utils import InventoryUrl
+from pycentral.base_utils import console_logger
 
+logger = console_logger("DEVICE INVENTORY")
 urls = InventoryUrl()
 
 
@@ -114,7 +116,13 @@ class Inventory(object):
                 "serials": device_serials
             }
             resp = conn.command(apiMethod="POST", apiPath=path, apiData=apiData)
+            if (resp.code == 200):
+                logger.info(f'Successfully unarchived devices with SN - {", ".join(str(device) for device in device_serials)}')
+            else:
+                logger.error(f'Failed to unarchive devices. Response code {resp.code}')
             return resp
+        else:
+            logger.error('Unable to unarchive devices since no device serial numbers were provided')
     
     def add_devices(self, conn, device_details):
         """Add device(s) using Mac & Serial Numbers
