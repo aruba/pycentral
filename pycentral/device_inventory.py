@@ -26,6 +26,7 @@ from pycentral.base_utils import console_logger
 logger = console_logger("DEVICE INVENTORY")
 urls = InventoryUrl()
 
+MAX_DEVICES = 100
 
 class Inventory(object):
     """
