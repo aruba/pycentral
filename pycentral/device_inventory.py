@@ -155,7 +155,7 @@ class Inventory(object):
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
         :type conn: class:`pycentral.ArubaCentralBase`
-        :param device_details: List of dictionaries with Aruba devices that should be added to the Aruba Central account
+        :param device_details: List of dictionaries with Aruba devices that should be added to the Aruba Central account. Each item in the dictionary should have the following keys - mac & serial. For Central On-Premises account, an additional key is required in the dictionary - partNumber
         :type device_details: list
         :return: HTTP Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`
         :rtype: dict
