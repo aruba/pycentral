@@ -9,8 +9,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -22,7 +22,9 @@
 
 def urlJoin(*args):
     trailing_slash = '/' if args[-1].endswith('/') else ''
-    return "/" + "/".join(map(lambda x: str(x).strip('/'), args)) + trailing_slash
+    return "/" + "/".join(map(lambda x: str(x).strip('/'),
+                          args)) + trailing_slash
+
 
 class RefreshUrl(object):
     REFRESH_TOKEN = {
@@ -98,19 +100,24 @@ class LicensingUrl():
         "GET_LIC_SVC": "/platform/licensing/v1/services/config",
         "UNASSIGN_LIC": "/platform/licensing/v1/subscriptions/devices/all",
         "ASSIGN_LIC": "/platform/licensing/v1/subscriptions/devices/all",
-        "UNASSIGN_LIC_MSP": "/platform/licensing/v1/msp/subscriptions/devices/all",
-        "ASSIGN_LIC_MSP": "/platform/licensing/v1/msp/subscriptions/devices/all"
-    }
+        "UNASSIGN_LIC_MSP":
+            "/platform/licensing/v1/msp/subscriptions/devices/all",
+        "ASSIGN_LIC_MSP":
+            "/platform/licensing/v1/msp/subscriptions/devices/all"}
 
     AUTO_LICENSE = {
         "GET_SVC": "/platform/licensing/v1/customer/settings/autolicense",
         "DISABLE_SVC": "/platform/licensing/v1/customer/settings/autolicense",
-        "ASSIGN_LIC_SVC": "/platform/licensing/v1/customer/settings/autolicense",
-        "DISABLE_LIC_SVC_MSP": "/platform/licensing/v1/msp/customer/settings/autolicense",
-        "GET_LIC_SVC_MSP": "/platform/licensing/v1/msp/customer/settings/autolicense",
-        "ASSIGN_LIC_SVC_MSP": "/platform/licensing/v1/msp/customer/settings/autolicense",
-        "GET_SVC_LIC_TOK": "/platform/licensing/v1/autolicensing/services"
-    }
+        "ASSIGN_LIC_SVC":
+            "/platform/licensing/v1/customer/settings/autolicense",
+        "DISABLE_LIC_SVC_MSP":
+            "/platform/licensing/v1/msp/customer/settings/autolicense",
+        "GET_LIC_SVC_MSP":
+            "/platform/licensing/v1/msp/customer/settings/autolicense",
+        "ASSIGN_LIC_SVC_MSP":
+            "/platform/licensing/v1/msp/customer/settings/autolicense",
+        "GET_SVC_LIC_TOK": "/platform/licensing/v1/autolicensing/services"}
+
 
 class UserManagementUrl():
     USERS = {
@@ -130,6 +137,7 @@ class UserManagementUrl():
         "DELETE": "/platform/rbac/v1/apps"
     }
 
+
 class FirmwareManagementUrl():
     FIRMWARE = {
         "GET_ALL_SWARMS": "/firmware/v1/swarms",
@@ -141,6 +149,7 @@ class FirmwareManagementUrl():
         "CANCEL": "/firmware/v1/upgrade/cancel"
     }
 
+
 class TopoUrl():
     TOPOLOGY = {
         "GET_TOPO_SITE": "/topology_external_api",
@@ -150,6 +159,7 @@ class TopoUrl():
         "GET_TUNNEL": "/topology_external_api/tunnels",
         "GET_AP_LLDP": "/topology_external_api/apNeighbors"
     }
+
 
 class RapidsUrl():
     ROGUES = {
@@ -165,6 +175,7 @@ class RapidsUrl():
         "GET_WIDS_EVENTS": "/rapids/v1/wids/events"
     }
 
+
 class AuditUrl():
     TRAIL_LOG = {
         "GET_ALL": "/platform/auditlogs/v1/logs",
@@ -175,6 +186,7 @@ class AuditUrl():
         "GET_ALL": "/auditlogs/v1/events",
         "GET": "/auditlogs/v1/event_details"
     }
+
 
 class VisualrfUrl():
     CLIENT_LOCATION = {
@@ -196,6 +208,7 @@ class VisualrfUrl():
         "GET_FLOOR_APS": "/visualrf_api/v1/floor",
         "GET_AP_LOC": "/visualrf_api/v1/access_point_location"
     }
+
 
 class MonitoringUrl():
     SITES = {
