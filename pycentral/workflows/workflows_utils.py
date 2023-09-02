@@ -9,8 +9,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -20,20 +20,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys, os
-import json, yaml, csv
+import sys
+import os
+import json
+import yaml
+import csv
 
 from pycentral.base import ArubaCentralBase
 
+
 def get_file_contents(filename, logger=None):
-    """Function to open a JSON/YAML/CSV file and return the contents of the file in dict format. (A list of dict is
-        returned for a CSV file.)
+    """Function to open a JSON/YAML/CSV file and return the contents of the\
+        file in dict format. (A list of dict is returned for a CSV file.)
 
     :param filename: Name of an existing JSON/YAML/CSV file.
     :type filename: str
     :param logger: Provide an instance of class:`logging.logger`.
     :type logger: class:`logging.logger`, optional
-    :raises UserWarning: Raises warning when supported filetypes are not provided.
+    :raises UserWarning: Raises warning when supported filetypes are not\
+        provided.
     :return: Data loaded from JSON/YAML/CSV file
     :rtype: dict (a list of dict for CSV)
     """
@@ -62,12 +67,14 @@ def get_file_contents(filename, logger=None):
         else:
             print(str(err))
 
+
 def dict_list_to_csv(filename, csv_data_list, logger=None):
     """Write list of dictionaries into a CSV File via csv.DictWriter()
 
     :param filename: Name of the file to be created or overwritten
     :type filename: str
-    :param csv_data_list: A list of dictionaries, where each dict is a row in CSV file
+    :param csv_data_list: A list of dictionaries, where each dict is a row in\
+        CSV file
     :type csv_data_list: list
     :param logger: Provide an instance of class:`logging.logger`.
     :type logger: class:`logging.logger`, optional
@@ -86,7 +93,9 @@ def dict_list_to_csv(filename, csv_data_list, logger=None):
             for data in csv_data_list:
                 writer.writerow(data)
         if logger:
-            logger.info("Creating a new csv file '%s' with failed APs..." % filename)
+            logger.info(
+                "Creating a new csv file '%s' with failed APs..." %
+                filename)
     except IOError:
         print("I/O error")
     except Exception as err:
@@ -95,18 +104,25 @@ def dict_list_to_csv(filename, csv_data_list, logger=None):
         else:
             print(str(err))
 
-def get_conn_from_file(filename, account = None, logger=None):
-    """Creates an instance of class`pycentral.ArubaCentralBase` based on the information
+
+def get_conn_from_file(filename, account=None, logger=None):
+    """Creates an instance of class`pycentral.ArubaCentralBase` based on the\
+        information
     provided in the YAML/JSON file. \n
-        * keyword central_info: A dict containing arguments as accepted by class`pycentral.ArubaCentralBase` \n
-        * keyword ssl_verify: A boolean when set to True, the python client validates Aruba Central's SSL certs. \n
+        * keyword central_info: A dict containing arguments as accepted by\
+            class`pycentral.ArubaCentralBase` \n
+        * keyword ssl_verify: A boolean when set to True, the python client\
+            validates Aruba Central's SSL certs. \n
         * keyword token_store: Optional. Defaults to None. \n
 
-    :param filename: Name of a JSON/YAML file containing the keywords required for class:`pycentral.ArubaCentralBase`
+    :param filename: Name of a JSON/YAML file containing the keywords required\
+        for class:`pycentral.ArubaCentralBase`
     :type filename: str
-    :param logger: Provide an instance of class:`logging.logger`, defaults to logger class with name "ARUBA_BASE".
+    :param logger: Provide an instance of class:`logging.logger`, defaults to\
+        logger class with name "ARUBA_BASE".
     :type logger: class:`logging.logger`, optional
-    :return: An instance of class:`pycentral.ArubaCentralBase` to make API calls and manage access tokens.
+    :return: An instance of class:`pycentral.ArubaCentralBase` to make API\
+        calls and manage access tokens.
     :rtype: class:`pycentral.ArubaCentralBase`
     """
     conn = None
