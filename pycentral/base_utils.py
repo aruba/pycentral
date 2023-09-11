@@ -9,8 +9,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -20,7 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import logging, os
+import logging
+import os
 from urllib.parse import urlencode, urlparse, urlunparse
 try:
     import colorlog  # type: ignore
@@ -29,12 +30,12 @@ except (ImportError, ModuleNotFoundError):
     COLOR = False
 
 C_LOG_LEVEL = {
-  "CRITICAL": 50,
-  "ERROR": 40,
-  "WARNING": 30,
-  "INFO": 20,
-  "DEBUG": 10,
-  "NOTSET":	0
+    "CRITICAL": 50,
+    "ERROR": 40,
+    "WARNING": 30,
+    "INFO": 20,
+    "DEBUG": 10,
+    "NOTSET": 0
 }
 
 C_DEFAULT_ARGS = {
@@ -47,13 +48,17 @@ C_DEFAULT_ARGS = {
     "token": None
 }
 
-def parseInputArgs(central_info):
-    """his method parses user input, checks for the availability of mandatory arguments. Optional missing parameters
-    in central_info variable is initialized as defined in C_DEFAULT_ARGS.
 
-    :param central_info: central_info dictionary as read from user's input file.
+def parseInputArgs(central_info):
+    """This method parses user input, checks for the availability of mandatory\
+        arguments. Optional missing parameters in central_info variable is\
+        initialized as defined in C_DEFAULT_ARGS.
+
+    :param central_info: central_info dictionary as read from user's input\
+        file.
     :type central_info: dict
-    :return: parsed central_info dict with missing optional params set to default values.
+    :return: parsed central_info dict with missing optional params set to\
+        default values.
     :rtype: dict
     """
     if not central_info:
@@ -70,16 +75,22 @@ def parseInputArgs(central_info):
 
     return default_dict
 
+
 def tokenLocalStoreUtil(token_store, customer_id="customer",
                         client_id="client"):
-    """Utility function for storeToken and loadToken default access token storage/cache method.
-    This function generates unique file name for a customer and API gateway client to store and load access
-    token in the local machine for reuse. The format of the file name is tok_<customer_id>_<client_id>.json.
-    If customer_id or client_id is not provided, default values mentioned in args will be used.
+    """Utility function for storeToken and loadToken default access token\
+        storage/cache method. This function generates unique file name for a\
+        customer and API gateway client to store and load access token in the\
+        local machine for reuse. The format of the file name is\
+        tok_<customer_id>_<client_id>.json. If customer_id or client_id is not\
+        provided, default values mentioned in args will be used.
 
-    :param token_store: Placeholder to support different token storage mechanism. \n
-        * keyword type: Place holder for different token storage mechanism. Defaults to local storage. \n
-        * keyword path: path where temp folder is created to store token JSON file. \n
+    :param token_store: Placeholder to support different token storage\
+        mechanism. \n
+        * keyword type: Place holder for different token storage mechanism.\
+            Defaults to local storage. \n
+        * keyword path: path where temp folder is created to store token JSON\
+            file. \n
     :type token_store: dict
     :param customer_id: Aruba Central customer id, defaults to "customer"
     :type customer_id: str, optional
@@ -95,6 +106,7 @@ def tokenLocalStoreUtil(token_store, customer_id="customer",
         filePath = os.path.join(token_store["path"])
     fullName = os.path.join(filePath, fileName)
     return fullName
+
 
 def get_url(base_url, path='', params='', query={}, fragment=''):
     """This method constructs complete URL based on multiple parts of URL.
@@ -119,15 +131,16 @@ def get_url(base_url, path='', params='', query={}, fragment=''):
     url = urlunparse((scheme, netloc, path, params, query, fragment))
     return url
 
-def console_logger(name, level="DEBUG"):
-    """This method create an instance of python logging and sets the following format for log messages.
-    <date> <time> - <name> - <level> - <message>
 
-    :param name: String displayed after data and time. Define it to identify from which part of the code,
-        log message is generated.
+def console_logger(name, level="DEBUG"):
+    """This method create an instance of python logging and sets the following\
+        format for log messages.\n<date> <time> - <name> - <level> - <message>
+
+    :param name: String displayed after data and time. Define it to identify\
+        from which part of the code, log message is generated.
     :type name: str
-    :param level: Loggin level set to display messages from a certain logging level. Refer Python logging
-        library man page, defaults to "DEBUG"
+    :param level: Loggin level set to display messages from a certain logging\
+        level. Refer Python logging library man page, defaults to "DEBUG"
     :type level: str, optional
     :return: An instance of class logging
     :rtype: class:`logging.Logger`
@@ -138,10 +151,15 @@ def console_logger(name, level="DEBUG"):
     f = format
     if COLOR:
         cformat = '%(log_color)s' + format
-        f = colorlog.ColoredFormatter(cformat, date_format,
-              log_colors = { 'DEBUG'   : 'bold_cyan', 'INFO' : 'blue',
-                             'WARNING' : 'yellow', 'ERROR': 'red',
-                             'CRITICAL': 'bold_red' })
+        f = colorlog.ColoredFormatter(
+            cformat,
+            date_format,
+            log_colors={
+                'DEBUG': 'bold_cyan',
+                'INFO': 'blue',
+                'WARNING': 'yellow',
+                'ERROR': 'red',
+                'CRITICAL': 'bold_red'})
     else:
         f = logging.Formatter(format, date_format)
     channel_handler.setFormatter(f)
