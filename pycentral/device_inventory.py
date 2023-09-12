@@ -221,7 +221,7 @@ class Inventory(object):
             extra_resp = resp['msg']['extra']
         if (resp["code"] == 200):
             avail_devices = extra_resp['message']["available_device"]
-            device_serials = [device["serial"] for device in avail_devices]
+            device_serials = [device["serial_number"] for device in avail_devices]
             logger.info(
                 f'Successfully added devices(with SN - \
                 {", ".join(str(device) for device in device_serials)}) \
