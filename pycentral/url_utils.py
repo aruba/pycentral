@@ -230,3 +230,15 @@ class InventoryUrl():
         "UNARCHIVE_DEVICES": "/platform/device_inventory/v1/devices/unarchive",
         "ADD_DEVICE": "/platform/device_inventory/v1/devices"
     }
+
+
+class MspURL():
+    MSP = {
+        "V1_CUSTOMER": "/msp_api/v1/customers",
+        "V2_CUSTOMER": "/msp_api/v2/customers",
+        "COUNTRY_CODE": "/msp_api/v2/get_country_code",
+        "USERS": "/msp_api/v1/customers/users",
+        "RESOURCES": "/msp_api/v1/resource",
+        "DEVICES": "/msp_api/v1/devices",
+        "GROUPS": "/msp_api/v1/groups"
+    }
