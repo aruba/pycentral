@@ -33,7 +33,7 @@ class MSP(object):
     """
 
     def get_customers(self, conn, offset=0, limit=100, customer_name=None):
-        """This functions returns the list of customers based on the provided \
+        """This function returns the list of customers based on the provided \
             parameters
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an\
@@ -66,7 +66,7 @@ class MSP(object):
         return resp
 
     def get_all_customers(self, conn):
-        """This functions returns a list of all the customers in the MSP \
+        """This function returns a list of all the customers in the MSP \
             account
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an\
@@ -103,7 +103,7 @@ class MSP(object):
         return customer_list
 
     def create_customer(self, conn, customer_details):
-        """This functions creates a customer in the MSP account based on the \
+        """This function creates a customer in the MSP account based on the \
             provided customer details
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an\
@@ -156,7 +156,7 @@ class MSP(object):
         return missingKey
 
     def __create_customer_body__(self, conn, customer_details):
-        """This functions creates the create customer API's body\
+        """This function creates the create customer API's body\
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an\
             API call.
@@ -215,7 +215,7 @@ class MSP(object):
             customer_details,
             customer_id=None,
             customer_name=None):
-        """This functions updates the details of an existing customer in the \
+        """This function updates the details of an existing customer in the \
             MSP account
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an\
@@ -267,7 +267,7 @@ class MSP(object):
             return resp
 
     def delete_customer(self, conn, customer_id=None, customer_name=None):
-        """This functions deletes the customer in the MSP account
+        """This function deletes the customer in the MSP account
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an\
             API call.
@@ -425,7 +425,7 @@ class MSP(object):
         return resp
 
     def get_msp_users(self, conn, offset=0, limit=10):
-        """This functions returns the list of users under the MSP account\
+        """This function returns the list of users under the MSP account\
             based on the provided parameters
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an\
@@ -457,7 +457,7 @@ class MSP(object):
             limit=10,
             customer_id=None,
             customer_name=None):
-        """This functions returns the list of users under a customer in the \
+        """This function returns the list of users under a customer in the \
             MSP account based on the provided parameters
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an\
@@ -504,7 +504,7 @@ class MSP(object):
         return resp
 
     def get_msp_resources(self, conn):
-        """This functions returns the branding resources under an MSP account
+        """This function returns the branding resources under an MSP account
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an\
             API call.
@@ -521,7 +521,7 @@ class MSP(object):
         return resp
 
     def edit_msp_resources(self, conn, resources_dict):
-        """This functions edits the branding resources under an MSP account
+        """This function edits the branding resources under an MSP account
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an\
             API call.
