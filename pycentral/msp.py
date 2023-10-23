@@ -184,6 +184,7 @@ class MSP(object):
                     "countries/country codes"
                 logger.error(log_message)
                 return
+
         customer_JSON = {
             "customer_name": customer_details['customer_name'],
             "description": "",
@@ -243,6 +244,7 @@ class MSP(object):
             logger.error(
                 "Attribute Error. Pass either customer_id or customer_name")
             return
+
         elif customer_id is None and customer_name:
             customer_id = self.get_customer_id(
                 conn, customer_name=customer_name)
@@ -251,6 +253,7 @@ class MSP(object):
                     'valid customer name'
                 logger.error(log_message)
                 return
+
         if self.__validate_customer_attributes__(customer_details):
             customer_apiData = self.__create_customer_body__(conn, customer_details)
             apiPath = f'{urls.MSP["V2_CUSTOMER"]}/{customer_id}'
@@ -316,12 +319,15 @@ class MSP(object):
             logger.error(
                 "Attribute Error. Pass either customer_id or customer_name")
             return None
+
         elif customer_id is None and customer_name:
             customer_id = self.get_customer_id(
                 conn, customer_name=customer_name)
             if customer_id is None:
                 logger.error(
                     'Unable to get customer_id. Please provide a valid customer name')
+                return
+
         apiPath = f'{urls.MSP["V1_CUSTOMER"]}/{customer_id}'
         resp = conn.command(apiMethod="GET", apiPath=apiPath)
         if (resp["code"] == 200):
@@ -349,6 +355,7 @@ class MSP(object):
                 'passed. Please provide a valid customer name'
             logger.error(log_message)
             return None
+
         apiPath = urls.MSP["V1_CUSTOMER"]
         apiParams = {
             "customer_name": customer_name
@@ -480,6 +487,7 @@ class MSP(object):
                 log_message = f'Unable to get customer_id of {customer_name}.' \
                     'Please provide a valid customer name'
                 logger.error(log_message)
+                return
 
         apiPath = urls.MSP["USERS"].split('/')
         apiPath.insert(-1, customer_id)
@@ -569,12 +577,14 @@ class MSP(object):
             logger.error(
                 "Attribute Error. Provide either customer_id or customer_name")
             return
+
         elif customer_id is None and customer_name:
             customer_id = self.get_customer_id(
                 conn, customer_name=customer_name)
             if customer_id is None:
                 logger.error(
                     'Unable to get customer_id. Please provide a valid customer name')
+                return
 
         apiPath = f'{urls.MSP["V1_CUSTOMER"]}/{customer_id}/devices'
         apiParams = {
@@ -625,11 +635,13 @@ class MSP(object):
             log_message = 'Attribute Error. Please provide list of devices that'\
                 'should be moved to the customer'
             logger.error(log_message)
+            return
 
         if customer_id is None and customer_name is None:
             logger.error(
                 "Attribute Error. Provide either customer_id or customer_name")
             return
+
         elif customer_id is None and customer_name:
             customer_id = self.get_customer_id(
                 conn, customer_name=customer_name)
@@ -637,6 +649,7 @@ class MSP(object):
                 log_message = 'Unable to get customer_id. Please provide a'\
                     'valid customer name'
                 logger.error(log_message)
+                return
 
         apiPath = f'{urls.MSP["V1_CUSTOMER"]}/{customer_id}/devices'
         apiData = {
@@ -678,6 +691,7 @@ class MSP(object):
             log_message = 'Attribute Error. Please provide list of devices that' \
                 ' should be moved from the customer to the MSP device inventory.'
             logger.error(log_message)
+            return
 
         if msp_id is None:
             msp_id = self.get_msp_id(conn)
@@ -726,6 +740,7 @@ class MSP(object):
             logger.error(
                 "Attribute Error. Provide either customer_id or customer_name")
             return
+
         elif customer_id is None and customer_name:
             customer_id = self.get_customer_id(
                 conn, customer_name=customer_name)
@@ -733,6 +748,7 @@ class MSP(object):
                 log_message = 'Unable to get customer_id. Please provide a ' \
                     'valid customer name'
                 logger.error(log_message)
+                return
 
         apiSubPath = "/".join(urls.MSP["V2_CUSTOMER"].split("/")[:-1])
         apiPath = f'{apiSubPath}/{customer_id}/devices'
@@ -816,6 +832,8 @@ class MSP(object):
                 log_message = 'Unable to get customer_id. ' \
                     'Please provide a valid customer name'
                 logger.error(log_message)
+                return
+
         offset = 0
         limit = 50
         device_list = []
@@ -826,11 +844,16 @@ class MSP(object):
             else:
                 resp = self.get_msp_devices_and_subscriptions(
                     conn, offset=offset, limit=limit)
-            if 'devices' in resp:
-                resp_devices = resp['devices']
+            if resp['code'] == 200 and resp['msg']['status'] == 'success' \
+                    and 'deviceList' in resp['msg']:
+                resp_message = resp['msg']['deviceList']
+                resp_devices = resp_message['devices']
                 device_list.extend(resp_devices)
-                if (len(device_list) == resp['total_devices']):
+                if (len(device_list) == resp_message['total_devices']):
                     break
+            else:
+                logger.error(resp)
+                return
             offset += limit
         return device_list
 
@@ -853,6 +876,8 @@ class MSP(object):
 
         if group_name is None:
             logger.error("Attribute Error. Provide a valid group name.")
+            return
+
         apiPath = f'{urls.MSP["GROUPS"]}/{group_name}/customers'
         apiParams = {
             "offset": offset,

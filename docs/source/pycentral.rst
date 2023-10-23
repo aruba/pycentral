@@ -8,14 +8,6 @@ Indices and tables
 pycentral package
 =================
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   pycentral.workflows
-
 pycentral.audit\_logs module
 ----------------------------
 
@@ -80,6 +72,14 @@ pycentral.monitoring module
    :undoc-members:
    :show-inheritance:
 
+pycentral.msp module
+---------------------------
+
+.. automodule:: pycentral.msp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pycentral.rapids module
 -----------------------
 
@@ -119,3 +119,11 @@ pycentral.visualrf module
    :members:
    :undoc-members:
    :show-inheritance:
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   pycentral.workflows
