@@ -23,6 +23,7 @@
 import logging
 import os
 from urllib.parse import urlencode, urlparse, urlunparse
+from constants import CLUSTER_API_BASE_URL_LIST
 try:
     import colorlog  # type: ignore
     COLOR = True
@@ -88,7 +89,9 @@ c = clusterBaseURL()
 
 def parseInputArgs(central_info):
     """This method parses user input, checks for the availability of mandatory\
-        arguments. Optional missing parameters in central_info variable is\
+        arguments. If the user opts to provide a cluster_name instead of\
+        base_url, the method will use the cluster_name to fetch the base_url.\
+        Optional missing parameters in central_info variable is\
         initialized as defined in C_DEFAULT_ARGS.
 
     :param central_info: central_info dictionary as read from user's input\
@@ -101,9 +104,19 @@ def parseInputArgs(central_info):
     if not central_info:
         exit("Error: Invalid Input!")
 
-    # Mandatory input arg
-    if "base_url" not in central_info:
-        exit("Error: Provide base_url for API Gateway!")
+    valid_url_input_keys = ["cluster_name", "base_url"]
+    url_conditional = [cluster_var in central_info.keys()
+                       for cluster_var in valid_url_input_keys]
+    if all(url_conditional):
+        errorMessage = "Cannot provide both base_url & cluster_name in token information. " + \
+            URL_BASE_ERR_MESSAGE
+        raise KeyError(errorMessage)
+    elif any(url_conditional):
+        if "cluster_name" in central_info:
+            central_info['base_url'] = c.getBaseURL(
+                central_info['cluster_name'])
+    else:
+        raise KeyError(URL_BASE_ERR_MESSAGE)
 
     default_dict = dict(C_DEFAULT_ARGS)
     for key in default_dict.keys():
