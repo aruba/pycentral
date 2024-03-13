@@ -24,7 +24,7 @@ setuptools.setup(
         'Topic :: System :: Networking',
         'Development Status :: 4 - Beta'
     ],
-    python_requires='>=3.9',
+    python_requires='>=3.8',
     install_requires=['requests', 'PyYAML', 'urllib3', 'certifi'],
     extras_require={
         'colorLog': ["colorlog"]
