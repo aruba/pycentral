@@ -151,8 +151,10 @@ def tokenLocalStoreUtil(token_store, customer_id="customer",
     :return: Filename for access token storage.
     :rtype: str
     """
-    fileName = "tok_" + str(customer_id)
-    fileName = fileName + "_" + str(client_id) + ".json"
+    fileName = "tok_"
+    if customer_id is not None:
+        fileName += str(customer_id)
+    fileName += "_" + str(client_id) + ".json"
     filePath = os.path.join(os.getcwd(), "temp")
     if token_store and "path" in token_store:
         filePath = os.path.join(token_store["path"])
