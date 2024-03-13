@@ -115,6 +115,8 @@ def parseInputArgs(central_info):
         if "cluster_name" in central_info:
             central_info['base_url'] = c.getBaseURL(
                 central_info['cluster_name'])
+        elif "base_url" in central_info:
+            central_info['base_url'] = valid_url(central_info['base_url'])
     else:
         raise KeyError(URL_BASE_ERR_MESSAGE)
 
@@ -174,12 +176,34 @@ def get_url(base_url, path='', params='', query={}, fragment=''):
     :return: Parsed URL
     :rtype: class:`urllib.parse.ParseResult`
     """
+    base_url = valid_url(base_url)
     parsed_baseurl = urlparse(base_url)
     scheme = parsed_baseurl.scheme
     netloc = parsed_baseurl.netloc
     query = urlencode(query)
     url = urlunparse((scheme, netloc, path, params, query, fragment))
     return url
+
+
+def valid_url(url):
+    """This method verifies & returns the URL in a valid format. If the URL is\
+        missing the https prefix, the function will prepend the prefix after\
+        verifiying that its a valid base URL of an Aruba Central cluster.
+
+    :param base_url: base url for a HTTP request
+    :type base_url: str
+    :return: Valid Base URL
+    :rtype: str
+    """
+    result = urlparse(url)
+    if all([result.scheme, result.netloc]):
+        return url
+    elif url in c.getAllBaseURLs():
+        return f'https://{url}'
+    else:
+        errorMessage = 'Invalid Base URL - ' + \
+            f'{url}\n' + URL_BASE_ERR_MESSAGE
+        raise ValueError(errorMessage)
 
 
 def console_logger(name, level="DEBUG"):
