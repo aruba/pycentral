@@ -48,6 +48,43 @@ C_DEFAULT_ARGS = {
     "token": None
 }
 
+URL_BASE_ERR_MESSAGE = "Please provide either the base_url of API Gateway or a valid cluster_name of cluster where Central account is provisioned!"
+
+
+class clusterBaseURL(object):
+    """This class helps to fetch the API Base URL when Aruba Central cluster 
+        name is provided.
+    """
+
+    def getBaseURL(self, cluster_name):
+        """This method returns the API Base URL of the provided Aruba Central\
+            cluster.
+
+        :param cluster_name: Name of the Aruba Central cluster whose base_url\
+            needs to be returned
+        :type cluster_name: str
+        :return: Base URL of provided cluster
+        :rtype: str
+        """
+        if cluster_name in CLUSTER_API_BASE_URL_LIST:
+            return f'https://{CLUSTER_API_BASE_URL_LIST[cluster_name]}'
+        else:
+            errorMessage = f"Unable to find cluster_name - {cluster_name}.\n"
+            + URL_BASE_ERR_MESSAGE
+            raise ValueError(errorMessage)
+
+    def getAllBaseURLs(self):
+        """This method returns the list of base URLs of all the clusters of\
+            Aruba Central
+
+        :return: List of all valid base URLs of Aruba Central
+        :rtype: list
+        """
+        return list(CLUSTER_API_BASE_URL_LIST.values())
+
+
+c = clusterBaseURL()
+
 
 def parseInputArgs(central_info):
     """This method parses user input, checks for the availability of mandatory\
