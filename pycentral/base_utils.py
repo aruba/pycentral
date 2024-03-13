@@ -23,7 +23,7 @@
 import logging
 import os
 from urllib.parse import urlencode, urlparse, urlunparse
-from constants import CLUSTER_API_BASE_URL_LIST
+from pycentral.constants import CLUSTER_API_BASE_URL_LIST
 try:
     import colorlog  # type: ignore
     COLOR = True
