@@ -1233,6 +1233,44 @@ class Wlan(object):
         path = urlJoin(urls.WLAN["GET_ALL"], group_name)
         resp = conn.command(apiMethod="GET", apiPath=path)
         return resp
+    def _change_wlan_status(self, conn, group_name, wlan_name, new_wlan_status):
+        """
+        This function lets you enable or disable the specified WLAN. 
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Name of Aruba Central group which has the WLAN
+        :type group_name: str
+        :param wlan_name: Name of WLAN whose status has to be changed
+        :type wlan_name: str
+        :param new_wlan_status: Status of WLAN - True => Enable WLAN, \
+        False => Disable WLAN
+        :type new_wlan_status: bool
+
+        :return: True when WLAN status was updated successfully. Otherwise, it\
+            will return False
+        :rtype: bool
+        """
+        wlan_action = "enabled" if new_wlan_status else "disabled"
+        wlan_config = self.get_full_wlan(conn, group_name, wlan_name)
+        if 'code' in wlan_config:
+            resp = wlan_config
+            logger.error(
+                f'Unable to {wlan_action[:-1]} WLAN {wlan_name}. \nError code {resp["code"]}. Error Message - {resp["msg"]}')
+            return False
+        wlan_config = self._change_full_wlan_attribute(
+            wlan_config, 'wlan', 'disable_ssid', new_wlan_status)
+        resp = self.update_full_wlan(conn, group_name=group_name, wlan_name=wlan_name, wlan_data={
+                                     "value": json.dumps(wlan_config)})
+        if resp['code'] == 200 and resp['msg'] == wlan_name:
+            logger.info(f'Successfully {wlan_action} WLAN {wlan_name}')
+            return True
+        else:
+            logger.error(
+                f'Unable to {wlan_action[:-1]} WLAN {wlan_name}. \nError code {resp["code"]}. Error Message - {resp["msg"]}')
+            return False
+
     def _change_full_wlan_attribute(self, wlan_config_json, type_key, attribute, new_value):
         """
         This function lets you update attributes within the WLAN configuration\
