@@ -1055,8 +1055,13 @@ class ApConfiguration(object):
 
 class Wlan(object):
     """A python class consisting of functions to manage Aruba Central WLANs
-    via REST API.
+    via REST API. This class uses WLAN APIs that have to be allowlisted for
+    the Aruba Central account
     """
+
+    def __init__(self):
+        logger.info(
+            'The WLAN class\'s APIs have to be allowlisted for the Aruba Central account.')
 
     def create_wlan(self, conn, group_name, wlan_name, wlan_data):
         """
