@@ -23,6 +23,7 @@
 import sys
 from pycentral.url_utils import ConfigurationUrl, urlJoin
 from pycentral.base_utils import console_logger
+import json
 
 urls = ConfigurationUrl()
 DEVICE_TYPES = ["IAP", "ArubaSwitch", "CX", "MobilityController"]
@@ -1055,8 +1056,13 @@ class ApConfiguration(object):
 
 class Wlan(object):
     """A python class consisting of functions to manage Aruba Central WLANs
-    via REST API.
+    via REST API. This class uses WLAN APIs that have to be allowlisted for
+    the Aruba Central account
     """
+
+    def __init__(self):
+        logger.info(
+            'The WLAN class\'s APIs have to be allowlisted for the Aruba Central account.')
 
     def create_wlan(self, conn, group_name, wlan_name, wlan_data):
         """
@@ -1117,7 +1123,7 @@ class Wlan(object):
             `pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urlJoin(urls.WLAN["CREATE_FULL"], group_name, wlan_name)
+        path = urlJoin(urls.WLAN["FULL_WLAN"], group_name, wlan_name)
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=wlan_data)
         return resp
 
@@ -1186,14 +1192,14 @@ class Wlan(object):
             `pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urlJoin(urls.WLAN["UPDATE_FULL"], group_name, wlan_name)
+        path = urlJoin(urls.WLAN["FULL_WLAN"], group_name, wlan_name)
         resp = conn.command(apiMethod="PUT", apiPath=path, apiData=wlan_data)
         return resp
 
     def get_wlan(self, conn, group_name, wlan_name):
         """
-        Gets full configuration of a WLAN in a Central group.
-
+        Gets configuration of a WLAN in a Central UI group 
+        using the v2 WLAN API. 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
             API call.
         :type conn: class:`pycentral.ArubaCentralBase`
@@ -1206,10 +1212,37 @@ class Wlan(object):
             `pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-
         path = urlJoin(urls.WLAN["GET"], group_name, wlan_name)
         resp = conn.command(apiMethod="GET", apiPath=path)
         return resp
+
+    def get_full_wlan(self, conn, group_name, wlan_name):
+        """
+        Get the full configuration, using the full_wlan endpoint
+        "/configuration/full_wlan/", of a WLAN. This configuration is useful 
+        for complex configuration changes
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Name of Aruba Central group which has the WLAN
+        :type group_name: str
+        :param wlan_name: Name of WLAN whose configuration has to be returned
+        :type wlan_name: str
+
+        :return: Full WLAN Configuration of WLAN
+        :rtype: dict
+        """
+        path = urlJoin(urls.WLAN["FULL_WLAN"], group_name, wlan_name)
+        resp = conn.command(apiMethod="GET", apiPath=path)
+
+        if resp['code'] == 200:
+            json_object = json.loads(resp['msg'])
+            return json_object
+        else:
+            logger.error(
+                f'Response code - {resp["code"]}.\n Response message - {resp["msg"]}')
+            return resp
 
     def get_all_wlans(self, conn, group_name):
         """
@@ -1228,3 +1261,100 @@ class Wlan(object):
         path = urlJoin(urls.WLAN["GET_ALL"], group_name)
         resp = conn.command(apiMethod="GET", apiPath=path)
         return resp
+
+    def enable_wlan(self, conn, group_name, wlan_name):
+        """
+        This function will enable the WLAN for client connections.
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Name of Aruba Central group which has the WLAN
+        :type group_name: str
+        :param wlan_name: Name of WLAN whose configuration has to be returned
+        :type wlan_name: str
+        """
+        self._change_wlan_status(conn, group_name, wlan_name, True)
+
+    def disable_wlan(self, conn, group_name, wlan_name):
+        """
+        This function will disable the WLAN for client connections. Current 
+        connected clients will be disconnected from this WLAN.
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Name of Aruba Central group which has the WLAN
+        :type group_name: str
+        :param wlan_name: Name of WLAN whose configuration has to be returned
+        :type wlan_name: str
+        """
+        self._change_wlan_status(conn, group_name, wlan_name, False)
+
+    def _change_wlan_status(self, conn, group_name, wlan_name, new_wlan_status):
+        """
+        This function lets you enable or disable the specified WLAN. 
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Name of Aruba Central group which has the WLAN
+        :type group_name: str
+        :param wlan_name: Name of WLAN whose status has to be changed
+        :type wlan_name: str
+        :param new_wlan_status: Status of WLAN - True => Enable WLAN, \
+        False => Disable WLAN
+        :type new_wlan_status: bool
+
+        :return: True when WLAN status was updated successfully. Otherwise, it\
+            will return False
+        :rtype: bool
+        """
+        wlan_action = "enabled" if new_wlan_status else "disabled"
+        wlan_config = self.get_full_wlan(conn, group_name, wlan_name)
+        if 'code' in wlan_config:
+            resp = wlan_config
+            logger.error(
+                f'Unable to {wlan_action[:-1]} WLAN {wlan_name}. \nError code {resp["code"]}. Error Message - {resp["msg"]}')
+            return False
+        wlan_config = self._change_full_wlan_attribute(
+            wlan_config, 'wlan', 'disable_ssid', new_wlan_status)
+        resp = self.update_full_wlan(conn, group_name=group_name, wlan_name=wlan_name, wlan_data={
+                                     "value": json.dumps(wlan_config)})
+        if resp['code'] == 200 and resp['msg'] == wlan_name:
+            logger.info(f'Successfully {wlan_action} WLAN {wlan_name}')
+            return True
+        else:
+            logger.error(
+                f'Unable to {wlan_action[:-1]} WLAN {wlan_name}. \nError code {resp["code"]}. Error Message - {resp["msg"]}')
+            return False
+
+    def _change_full_wlan_attribute(self, wlan_config_json, type_key, attribute, new_value):
+        """
+        This function lets you update attributes within the WLAN configuration\
+            dictionary that is returned by full_wlan API endpoint
+
+        :param wlan_config_json: WLAN Configuration that is returned by \
+            full_wlan API endpoint
+        :type wlan_config_json: dict
+        :param type_key: Key that can be used to specify which sub-dictionary\
+            the attribute is within.
+        :type type_key: str
+        :param attribute: Attribute that has to be updated within the \
+            sub-dictionary specified by type_key
+        :type attribute: str
+        :param new_value: New value of the attribute
+        :type new_value: bool
+
+        :return: WLAN Configuration with the attribute updated.
+        :rtype: dict
+        """
+        if type_key in wlan_config_json:
+            if attribute in wlan_config_json[type_key]:
+                wlan_config_json[type_key][attribute] = new_value
+                return wlan_config_json
+            else:
+                print(
+                    f'Unable to find {attribute} key in wlan_config\'s {type_key}.')
+        else:
+            print(f'Unable to find {type_key} key in wlan_config.')
