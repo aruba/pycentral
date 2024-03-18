@@ -1233,6 +1233,36 @@ class Wlan(object):
         path = urlJoin(urls.WLAN["GET_ALL"], group_name)
         resp = conn.command(apiMethod="GET", apiPath=path)
         return resp
+
+    def enable_wlan(self, conn, group_name, wlan_name):
+        """
+        This function will enable the WLAN for client connections.
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Name of Aruba Central group which has the WLAN
+        :type group_name: str
+        :param wlan_name: Name of WLAN whose configuration has to be returned
+        :type wlan_name: str
+        """
+        self._change_wlan_status(conn, group_name, wlan_name, True)
+
+    def disable_wlan(self, conn, group_name, wlan_name):
+        """
+        This function will disable the WLAN for client connections. Current 
+        connected clients will be disconnected from this WLAN.
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Name of Aruba Central group which has the WLAN
+        :type group_name: str
+        :param wlan_name: Name of WLAN whose configuration has to be returned
+        :type wlan_name: str
+        """
+        self._change_wlan_status(conn, group_name, wlan_name, False)
+
     def _change_wlan_status(self, conn, group_name, wlan_name, new_wlan_status):
         """
         This function lets you enable or disable the specified WLAN. 
