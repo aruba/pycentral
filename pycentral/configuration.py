@@ -1233,3 +1233,32 @@ class Wlan(object):
         path = urlJoin(urls.WLAN["GET_ALL"], group_name)
         resp = conn.command(apiMethod="GET", apiPath=path)
         return resp
+    def _change_full_wlan_attribute(self, wlan_config_json, type_key, attribute, new_value):
+        """
+        This function lets you update attributes within the WLAN configuration\
+            dictionary that is returned by full_wlan API endpoint
+
+        :param wlan_config_json: WLAN Configuration that is returned by \
+            full_wlan API endpoint
+        :type wlan_config_json: dict
+        :param type_key: Key that can be used to specify which sub-dictionary\
+            the attribute is within.
+        :type type_key: str
+        :param attribute: Attribute that has to be updated within the \
+            sub-dictionary specified by type_key
+        :type attribute: str
+        :param new_value: New value of the attribute
+        :type new_value: bool
+
+        :return: WLAN Configuration with the attribute updated.
+        :rtype: dict
+        """
+        if type_key in wlan_config_json:
+            if attribute in wlan_config_json[type_key]:
+                wlan_config_json[type_key][attribute] = new_value
+                return wlan_config_json
+            else:
+                print(
+                    f'Unable to find {attribute} key in wlan_config\'s {type_key}.')
+        else:
+            print(f'Unable to find {type_key} key in wlan_config.')
