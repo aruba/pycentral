@@ -83,7 +83,7 @@ class ConfigurationUrl():
         "GET": "/configuration/full_wlan",
         "GET_ALL": "/configuration/v1/wlan",
         "CREATE": "/configuration/v2/wlan",
-        "CREATE_FULL": "/configuration/full_wlan",
+        "FULL_WLAN": "/configuration/full_wlan",
         "DELETE": "/configuration/v1/wlan",
         "UPDATE": "/configuration/v2/wlan",
         "UPDATE_FULL": "/configuration/full_wlan"

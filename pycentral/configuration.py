@@ -1117,7 +1117,7 @@ class Wlan(object):
             `pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-        path = urlJoin(urls.WLAN["CREATE_FULL"], group_name, wlan_name)
+        path = urlJoin(urls.WLAN["FULL_WLAN"], group_name, wlan_name)
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=wlan_data)
         return resp
 
