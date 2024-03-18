@@ -23,6 +23,7 @@
 import sys
 from pycentral.url_utils import ConfigurationUrl, urlJoin
 from pycentral.base_utils import console_logger
+import json
 
 urls = ConfigurationUrl()
 DEVICE_TYPES = ["IAP", "ArubaSwitch", "CX", "MobilityController"]
@@ -1197,8 +1198,8 @@ class Wlan(object):
 
     def get_wlan(self, conn, group_name, wlan_name):
         """
-        Gets full configuration of a WLAN in a Central group.
-
+        Gets configuration of a WLAN in a Central UI group 
+        using the v2 WLAN API. 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
             API call.
         :type conn: class:`pycentral.ArubaCentralBase`
@@ -1211,10 +1212,37 @@ class Wlan(object):
             `pycentral.ArubaCentralBase`.
         :rtype: dict
         """
-
         path = urlJoin(urls.WLAN["GET"], group_name, wlan_name)
         resp = conn.command(apiMethod="GET", apiPath=path)
         return resp
+
+    def get_full_wlan(self, conn, group_name, wlan_name):
+        """
+        Get the full configuration, using the full_wlan endpoint
+        "/configuration/full_wlan/", of a WLAN. This configuration is useful 
+        for complex configuration changes
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Name of Aruba Central group which has the WLAN
+        :type group_name: str
+        :param wlan_name: Name of WLAN whose configuration has to be returned
+        :type wlan_name: str
+
+        :return: Full WLAN Configuration of WLAN
+        :rtype: dict
+        """
+        path = urlJoin(urls.WLAN["FULL_WLAN"], group_name, wlan_name)
+        resp = conn.command(apiMethod="GET", apiPath=path)
+
+        if resp['code'] == 200:
+            json_object = json.loads(resp['msg'])
+            return json_object
+        else:
+            logger.error(
+                f'Response code - {resp["code"]}.\n Response message - {resp["msg"]}')
+            return resp
 
     def get_all_wlans(self, conn, group_name):
         """
