@@ -1198,14 +1198,15 @@ class Wlan(object):
 
     def get_wlan(self, conn, group_name, wlan_name):
         """
-        Gets configuration of a WLAN in a Central UI group 
-        using the v2 WLAN API. 
+        Gets configuration of a WLAN in a Central UI group
+        using the v2 WLAN API.
+
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
             API call.
         :type conn: class:`pycentral.ArubaCentralBase`
         :param group_name: Group name of the group or guid of the swarm.
         :type group_name: str
-        :param wlan_name: Name string for wlan to get.
+        :param wlan_name: Name string for wlan to get
         :type wlan_name: str
 
         :return: Response as provided by 'command' function in class:
