@@ -197,14 +197,17 @@ def valid_url(url):
     :return: Valid Base URL
     :rtype: str
     """
-    result = urlparse(url)
-    if all([result.scheme, result.netloc]):
-        return url
-    elif url in c.getAllBaseURLs():
-        return f'https://{url}'
+    parsed_url = urlparse(url)
+    if all([parsed_url.scheme, parsed_url.netloc]):
+        return parsed_url.geturl()
+    elif bool(parsed_url.scheme) is False and bool(parsed_url.path):
+        parsed_url = parsed_url._replace(**{"scheme": "https",
+                                            "netloc": parsed_url.path,
+                                            "path": ''})
+        return parsed_url.geturl()
     else:
-        errorMessage = 'Invalid Base URL - ' + \
-            f'{url}\n' + URL_BASE_ERR_MESSAGE
+        errorMessage = ('Invalid Base URL - ' + f'{url}\n' +
+                        URL_BASE_ERR_MESSAGE)
         raise ValueError(errorMessage)
 
 
