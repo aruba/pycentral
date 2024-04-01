@@ -70,8 +70,8 @@ class clusterBaseURL(object):
         if cluster_name in CLUSTER_API_BASE_URL_LIST:
             return f'https://{CLUSTER_API_BASE_URL_LIST[cluster_name]}'
         else:
-            errorMessage = f"Unable to find cluster_name - {cluster_name}.\n"
-            + URL_BASE_ERR_MESSAGE
+            errorMessage = (f"Unable to find cluster_name - {cluster_name}.\n" +
+                            URL_BASE_ERR_MESSAGE)
             raise ValueError(errorMessage)
 
     def getAllBaseURLs(self):
@@ -108,8 +108,8 @@ def parseInputArgs(central_info):
     url_conditional = [cluster_var in central_info.keys()
                        for cluster_var in valid_url_input_keys]
     if all(url_conditional):
-        errorMessage = "Cannot provide both base_url & cluster_name in token information. " + \
-            URL_BASE_ERR_MESSAGE
+        errorMessage = ("Cannot provide both base_url & cluster_name in token information. " +
+                        URL_BASE_ERR_MESSAGE)
         raise KeyError(errorMessage)
     elif any(url_conditional):
         if "cluster_name" in central_info:
