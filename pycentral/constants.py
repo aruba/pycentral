@@ -37,5 +37,6 @@ CLUSTER_API_BASE_URL_LIST = {
     "China-1": "apigw.central.arubanetworks.com.cn",
     "APAC-1": "api-ap.central.arubanetworks.com",
     "APAC-EAST1": "apigw-apaceast.central.arubanetworks.com",
-    "APAC-SOUTH1": "apigw-apacsouth.central.arubanetworks.com"
+    "APAC-SOUTH1": "apigw-apacsouth.central.arubanetworks.com",
+    "UAE-NORTH1": "apigw-uaenorth1.central.arubanetworks.com"
 }
