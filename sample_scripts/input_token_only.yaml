@@ -2,8 +2,4 @@ central_info:
   base_url: "<api-gateway-domain-url>"
   token:
     access_token: "<api-gateway-access-token>"
-internal:
-  base_url: "https://internal-apigw.central.arubanetworks.com"
-  token:
-    access_token: "<api-gateway-access-token>"
 ssl_verify: true
