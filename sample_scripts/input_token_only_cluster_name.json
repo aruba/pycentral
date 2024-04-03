@@ -1,0 +1,9 @@
+{
+  "central_info": {
+    "cluster_name": "<name-of-cluster-of-aruba-central-account>",
+    "token": {
+      "access_token": "<api-gateway-access-token>"
+    }
+  },
+  "ssl_verify": true
+}
