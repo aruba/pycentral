@@ -22,7 +22,6 @@
 
 from pycentral.url_utils import ConfigurationUrl, urlJoin
 from pycentral.base_utils import console_logger
-import json
 
 urls = ConfigurationUrl()
 DEVICE_TYPES = ["IAP", "ArubaSwitch", "CX", "MobilityController"]
