@@ -23,6 +23,7 @@
 import logging
 import os
 from urllib.parse import urlencode, urlparse, urlunparse
+from pycentral.constants import CLUSTER_API_BASE_URL_LIST
 try:
     import colorlog  # type: ignore
     COLOR = True
@@ -48,10 +49,49 @@ C_DEFAULT_ARGS = {
     "token": None
 }
 
+URL_BASE_ERR_MESSAGE = "Please provide either the base_url of API Gateway or a valid cluster_name of cluster where Central account is provisioned!"
+
+
+class clusterBaseURL(object):
+    """This class helps to fetch the API Base URL when Aruba Central cluster 
+        name is provided.
+    """
+
+    def getBaseURL(self, cluster_name):
+        """This method returns the API Base URL of the provided Aruba Central\
+            cluster.
+
+        :param cluster_name: Name of the Aruba Central cluster whose base_url\
+            needs to be returned
+        :type cluster_name: str
+        :return: Base URL of provided cluster
+        :rtype: str
+        """
+        if cluster_name in CLUSTER_API_BASE_URL_LIST:
+            return f'https://{CLUSTER_API_BASE_URL_LIST[cluster_name]}'
+        else:
+            errorMessage = (f"Unable to find cluster_name - {cluster_name}.\n" +
+                            URL_BASE_ERR_MESSAGE)
+            raise ValueError(errorMessage)
+
+    def getAllBaseURLs(self):
+        """This method returns the list of base URLs of all the clusters of\
+            Aruba Central
+
+        :return: List of all valid base URLs of Aruba Central
+        :rtype: list
+        """
+        return list(CLUSTER_API_BASE_URL_LIST.values())
+
+
+c = clusterBaseURL()
+
 
 def parseInputArgs(central_info):
     """This method parses user input, checks for the availability of mandatory\
-        arguments. Optional missing parameters in central_info variable is\
+        arguments. If the user opts to provide a cluster_name instead of\
+        base_url, the method will use the cluster_name to fetch the base_url.\
+        Optional missing parameters in central_info variable is\
         initialized as defined in C_DEFAULT_ARGS.
 
     :param central_info: central_info dictionary as read from user's input\
@@ -64,9 +104,21 @@ def parseInputArgs(central_info):
     if not central_info:
         exit("Error: Invalid Input!")
 
-    # Mandatory input arg
-    if "base_url" not in central_info:
-        exit("Error: Provide base_url for API Gateway!")
+    valid_url_input_keys = ["cluster_name", "base_url"]
+    url_conditional = [cluster_var in central_info.keys()
+                       for cluster_var in valid_url_input_keys]
+    if all(url_conditional):
+        errorMessage = ("Cannot provide both base_url & cluster_name in token information. " +
+                        URL_BASE_ERR_MESSAGE)
+        raise KeyError(errorMessage)
+    elif any(url_conditional):
+        if "cluster_name" in central_info:
+            central_info['base_url'] = c.getBaseURL(
+                central_info['cluster_name'])
+        elif "base_url" in central_info:
+            central_info['base_url'] = valid_url(central_info['base_url'])
+    else:
+        raise KeyError(URL_BASE_ERR_MESSAGE)
 
     default_dict = dict(C_DEFAULT_ARGS)
     for key in default_dict.keys():
@@ -99,8 +151,10 @@ def tokenLocalStoreUtil(token_store, customer_id="customer",
     :return: Filename for access token storage.
     :rtype: str
     """
-    fileName = "tok_" + str(customer_id)
-    fileName = fileName + "_" + str(client_id) + ".json"
+    fileName = "tok_"
+    if customer_id is not None:
+        fileName += str(customer_id)
+    fileName += "_" + str(client_id) + ".json"
     filePath = os.path.join(os.getcwd(), "temp")
     if token_store and "path" in token_store:
         filePath = os.path.join(token_store["path"])
@@ -124,12 +178,37 @@ def get_url(base_url, path='', params='', query={}, fragment=''):
     :return: Parsed URL
     :rtype: class:`urllib.parse.ParseResult`
     """
+    base_url = valid_url(base_url)
     parsed_baseurl = urlparse(base_url)
     scheme = parsed_baseurl.scheme
     netloc = parsed_baseurl.netloc
     query = urlencode(query)
     url = urlunparse((scheme, netloc, path, params, query, fragment))
     return url
+
+
+def valid_url(url):
+    """This method verifies & returns the URL in a valid format. If the URL is\
+        missing the https prefix, the function will prepend the prefix after\
+        verifiying that its a valid base URL of an Aruba Central cluster.
+
+    :param base_url: base url for a HTTP request
+    :type base_url: str
+    :return: Valid Base URL
+    :rtype: str
+    """
+    parsed_url = urlparse(url)
+    if all([parsed_url.scheme, parsed_url.netloc]):
+        return parsed_url.geturl()
+    elif bool(parsed_url.scheme) is False and bool(parsed_url.path):
+        parsed_url = parsed_url._replace(**{"scheme": "https",
+                                            "netloc": parsed_url.path,
+                                            "path": ''})
+        return parsed_url.geturl()
+    else:
+        errorMessage = ('Invalid Base URL - ' + f'{url}\n' +
+                        URL_BASE_ERR_MESSAGE)
+        raise ValueError(errorMessage)
 
 
 def console_logger(name, level="DEBUG"):

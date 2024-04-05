@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys
 from pycentral.url_utils import ConfigurationUrl, urlJoin
 from pycentral.base_utils import console_logger
 
@@ -1052,11 +1051,140 @@ class ApConfiguration(object):
 
         return resp
 
+    def change_wlan_status(self, conn, group_name, wlan_name, new_wlan_status):
+        """
+        This function lets you enable or disable the specified WLAN in a UI \
+        group. 
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Name of Aruba Central group which has the WLAN
+        :type group_name: str
+        :param wlan_name: Name of WLAN whose status has to be changed
+        :type wlan_name: str
+        :param new_wlan_status: Status of WLAN - True => Enable WLAN, \
+        False => Disable WLAN
+        :type new_wlan_status: bool
+
+        :return: True when WLAN status was updated successfully. Otherwise, it\
+            will return False
+        :rtype: bool
+        """
+        wlan_action = "enable" if new_wlan_status else "disable"
+        ap_config_resp = self.get_ap_config(conn, group_name)
+        if ap_config_resp['code'] != 200:
+            resp = ap_config_resp
+            logger.error(
+                f'Unable to {wlan_action} WLAN {wlan_name}. \nError code {resp["code"]}. Error Message - {resp["msg"]}')
+            return False
+
+        ap_config = ap_config_resp['msg']
+        wlan_list = self._parse_wlans_from_ap_config(ap_config)
+        if wlan_name not in wlan_list.keys():
+            logger.error(
+                f'Unable to find WLAN {wlan_name} in group {group_name}.\n Please provide a valid WLAN to {wlan_action}')
+            return False
+
+        new_wlan_config = self._update_wlan_status_ap_config(
+            wlan_list[wlan_name]['config'], wlan_action)
+        wlan_config_index = wlan_list[wlan_name]['config_start_index']
+        new_ap_config = self._update_wlan_in_ap_cli_config(
+            ap_config, new_wlan_config, wlan_config_index)
+        ap_config_resp = self.replace_ap(
+            conn, group_name=group_name, data={"clis": new_ap_config})
+        if ap_config_resp['code'] == 200 and ap_config_resp['msg'] == group_name:
+            logger.info(f'Successfully {wlan_action}d WLAN {wlan_name}')
+            return True
+        else:
+            logger.error(
+                f'Unable to {wlan_action} WLAN {wlan_name}. \nError code {ap_config_resp["code"]}. Error Message - {ap_config_resp["msg"]}')
+            return False
+
+    def _parse_wlans_from_ap_config(self, ap_config):
+        """
+        This function lets you parse out WLANs from a given AP configuration
+
+        :param ap_config: Whole configuration in CLI format of an UI group
+        :type ap_config: list
+
+        :return: Dictionary of WLAN with WLAN Configuration in CLI format & \
+            index of WLAN CLI Configuration
+        :rtype: dict
+        """
+        empty_space = '  '
+        wlans = {}
+        current_wlan = None
+        wlan_prefix = 'wlan ssid-profile '
+        for index, config_line in enumerate(ap_config):
+            if config_line.startswith(wlan_prefix):
+                wlan_name = config_line[len(wlan_prefix):]
+                current_wlan = wlan_name
+                wlans[wlan_name] = {
+                    'config': [config_line],
+                    'config_start_index': index
+                }
+            elif config_line.startswith(empty_space) and current_wlan:
+                wlans[current_wlan]['config'].append(config_line)
+            elif current_wlan:
+                current_wlan = None
+        return wlans
+
+    def _update_wlan_status_ap_config(self, ap_wlan_config, wlan_action):
+        """
+        This function updates the status of WLAN in WLAN configuration in CLI\
+        format.
+
+        :param ap_wlan_config: WLAN Configuration in CLI format
+        :type ap_wlan_config: list
+        :param wlan_action: Status that WLAN will be updated to. The action \
+            can either be enable or disable
+        :type wlan_action: str
+
+        :return: Updated WLAN Configuration in CLI format
+        :rtype: list
+        """
+        wlan_actions = ["enable", "disable"]
+        wlan_opp_action = list(
+            filter(lambda x: x != wlan_action, wlan_actions))[0]
+        empty_space = '  '
+        for index, config_line in enumerate(ap_wlan_config):
+            if (config_line == (empty_space + wlan_action)):
+                return ap_wlan_config
+            elif (config_line == (empty_space + wlan_opp_action)):
+                ap_wlan_config[index] = (empty_space + wlan_action)
+                return ap_wlan_config
+
+    def _update_wlan_in_ap_cli_config(self, old_ap_config, new_wlan_config, wlan_start_index):
+        """
+        This function changes the WLAN configuration in the group\
+        configuration in CLI format.
+
+        :param old_ap_config: AP Configuration in CLI format
+        :type old_ap_config: list
+        :param new_wlan_config: WLAN Configuration in CLI format
+        :type new_wlan_config: list
+        :param wlan_start_index: Index of WLAN Configuration Status that WLAN\
+            will be updated to. The action can either be enable or disable
+        :type wlan_start_index: int
+
+        :return: Updated WLAN Configuration in CLI format
+        :rtype: list
+        """
+        endIndex = wlan_start_index + len(new_wlan_config)
+        old_ap_config[wlan_start_index:endIndex] = new_wlan_config
+        return old_ap_config
+
 
 class Wlan(object):
     """A python class consisting of functions to manage Aruba Central WLANs
-    via REST API.
+    via REST API. This class uses WLAN APIs that have to be allowlisted for
+    the Aruba Central account
     """
+
+    def __init__(self):
+        logger.info(
+            'The WLAN class\'s APIs have to be allowlisted for the Aruba Central account.')
 
     def create_wlan(self, conn, group_name, wlan_name, wlan_data):
         """
@@ -1192,7 +1320,7 @@ class Wlan(object):
 
     def get_wlan(self, conn, group_name, wlan_name):
         """
-        Gets full configuration of a WLAN in a Central group.
+        Gets configuration of a WLAN in a Central group.
 
         :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
             API call.
@@ -1228,3 +1356,34 @@ class Wlan(object):
         path = urlJoin(urls.WLAN["GET_ALL"], group_name)
         resp = conn.command(apiMethod="GET", apiPath=path)
         return resp
+
+    def enable_wlan(self, conn, group_name, wlan_name):
+        """
+        This function will enable the WLAN for client connections.
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Name of Aruba Central UI group which has the WLAN
+        :type group_name: str
+        :param wlan_name: Name of WLAN whose configuration has to be returned
+        :type wlan_name: str
+        """
+        a = ApConfiguration()
+        a.change_wlan_status(conn, group_name, wlan_name, True)
+
+    def disable_wlan(self, conn, group_name, wlan_name):
+        """
+        This function will disable the WLAN for client connections. Current 
+        connected clients will be disconnected from this WLAN.
+
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an
+            API call.
+        :type conn: class:`pycentral.ArubaCentralBase`
+        :param group_name: Name of Aruba Central UI group which has the WLAN
+        :type group_name: str
+        :param wlan_name: Name of WLAN whose configuration has to be returned
+        :type wlan_name: str
+        """
+        a = ApConfiguration()
+        a.change_wlan_status(conn, group_name, wlan_name, False)

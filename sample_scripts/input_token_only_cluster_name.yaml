@@ -1,5 +1,5 @@
 central_info:
-  base_url: "<api-gateway-domain-url>"
+  cluster-name: "<name-of-cluster-of-aruba-central-account>"
   token:
     access_token: "<api-gateway-access-token>"
 ssl_verify: true

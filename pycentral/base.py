@@ -75,7 +75,12 @@ class ArubaCentralBase:
         * keyword customer_id: (Optional) API Gateway client_secret string,\
             Provide for OAUTH2.0 and refresh token API. \n
         * keyword base_url: Provide the API Gateway string base FQDN in format\
-            `https://<Aruba-Central-API-Gateway-Domain-Name>` \n
+            `https://<Aruba-Central-API-Gateway-Domain-Name>` You need to \
+            provide either a base_url or cluster_name. \n
+        * keyword cluster_name: Provide the name of the cluster where the\
+            Aruba Central account is provisioned. You need to provide either a\
+            base_url or cluster_name. You can find the list of supported\
+            clusters in the constants.py file. \n
         * keyword token: (Optional) The token dict is mutually excluive with\
             OAUTH2.0 parameters. token dict should consist of the following\
             key-value pairs - \n
