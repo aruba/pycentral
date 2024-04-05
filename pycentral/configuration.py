@@ -1053,6 +1053,80 @@ class ApConfiguration(object):
 
         return resp
 
+    def _parse_wlans_from_ap_config(self, ap_config):
+        """
+        This function lets you parse out WLANs from a given AP configuration
+
+        :param ap_config: Whole configuration in CLI format of an UI group
+        :type ap_config: list
+
+        :return: Dictionary of WLAN with WLAN Configuration in CLI format & \
+            index of WLAN CLI Configuration
+        :rtype: dict
+        """
+        empty_space = '  '
+        wlans = {}
+        current_wlan = None
+        wlan_prefix = 'wlan ssid-profile '
+        for index, config_line in enumerate(ap_config):
+            if config_line.startswith(wlan_prefix):
+                wlan_name = config_line[len(wlan_prefix):]
+                current_wlan = wlan_name
+                wlans[wlan_name] = {
+                    'config': [config_line],
+                    'config_start_index': index
+                }
+            elif config_line.startswith(empty_space) and current_wlan:
+                wlans[current_wlan]['config'].append(config_line)
+            elif current_wlan:
+                current_wlan = None
+        return wlans
+
+    def _update_wlan_status_ap_config(self, ap_wlan_config, wlan_action):
+        """
+        This function updates the status of WLAN in WLAN configuration in CLI\
+        format.
+
+        :param ap_wlan_config: WLAN Configuration in CLI format
+        :type ap_wlan_config: list
+        :param wlan_action: Status that WLAN will be updated to. The action \
+            can either be enable or disable
+        :type wlan_action: str
+
+        :return: Updated WLAN Configuration in CLI format
+        :rtype: list
+        """
+        wlan_actions = ["enable", "disable"]
+        wlan_opp_action = list(
+            filter(lambda x: x != wlan_action, wlan_actions))[0]
+        empty_space = '  '
+        for index, config_line in enumerate(ap_wlan_config):
+            if (config_line == (empty_space + wlan_action)):
+                return ap_wlan_config
+            elif (config_line == (empty_space + wlan_opp_action)):
+                ap_wlan_config[index] = (empty_space + wlan_action)
+                return ap_wlan_config
+
+    def _update_wlan_in_ap_cli_config(self, old_ap_config, new_wlan_config, wlan_start_index):
+        """
+        This function changes the WLAN configuration in the group\
+        configuration in CLI format.
+
+        :param old_ap_config: AP Configuration in CLI format
+        :type old_ap_config: list
+        :param new_wlan_config: WLAN Configuration in CLI format
+        :type new_wlan_config: list
+        :param wlan_start_index: Index of WLAN Configuration Status that WLAN\
+            will be updated to. The action can either be enable or disable
+        :type wlan_start_index: int
+
+        :return: Updated WLAN Configuration in CLI format
+        :rtype: list
+        """
+        endIndex = wlan_start_index + len(new_wlan_config)
+        old_ap_config[wlan_start_index:endIndex] = new_wlan_config
+        return old_ap_config
+
 
 class Wlan(object):
     """A python class consisting of functions to manage Aruba Central WLANs
