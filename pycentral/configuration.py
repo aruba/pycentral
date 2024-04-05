@@ -1366,7 +1366,7 @@ class Wlan(object):
         :type conn: class:`pycentral.ArubaCentralBase`
         :param group_name: Name of Aruba Central UI group which has the WLAN
         :type group_name: str
-        :param wlan_name: Name of WLAN whose configuration has to be returned
+        :param wlan_name: Name of WLAN which has to be enabled
         :type wlan_name: str
         """
         a = ApConfiguration()
@@ -1382,7 +1382,7 @@ class Wlan(object):
         :type conn: class:`pycentral.ArubaCentralBase`
         :param group_name: Name of Aruba Central UI group which has the WLAN
         :type group_name: str
-        :param wlan_name: Name of WLAN whose configuration has to be returned
+        :param wlan_name: Name of WLAN which has to be disabled
         :type wlan_name: str
         """
         a = ApConfiguration()
