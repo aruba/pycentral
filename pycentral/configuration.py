@@ -340,16 +340,23 @@ class Devices(object):
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
 
-    def move_devices(self, conn, group_name, device_serials):
-        """Move list of devices to group and assign specified group in device management page
-
-        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an API call.
+    def move_devices(self, conn, group_name, device_serials, preserve_config_overrides=None):
+        """Move list of devices to group and assign specified group in device\
+            management page
+    
+        :param conn: Instance of class:`pycentral.ArubaCentralBase` to make an\
+            API call.
         :type conn: class:`pycentral.ArubaCentralBase`
         :param group_name: Name of a group where devices will be moved
         :type group_name: str
-        :param device_serials: A list of device serials to be moved to the mentioned group
+        :param device_serials: A list of device serials to be moved to the\
+            mentioned group
         :type device_serials: list
-        :return: Response as provided by 'command' function in class:`pycentral.ArubaCentralBase`.
+        :param preserve_config_overrides: List of device types for which configuration\
+            overrides should be preserved, e.g., ["AOS_CX"]
+        :type preserve_config_overrides: list, optional
+        :return: Response as provided by 'command' function in\
+            class:`pycentral.ArubaCentralBase`.
         :rtype: dict
         """
         path = urls.DEVICES["MOVE_DEVICES"]
@@ -357,6 +364,10 @@ class Devices(object):
             "group": group_name,
             "serials": device_serials
         }
+        # Add preserve_config_overrides to the data payload if provided
+        if preserve_config_overrides:
+            data["preserve_config_overrides"] = preserve_config_overrides
+    
         resp = conn.command(apiMethod="POST", apiPath=path, apiData=data)
         return resp
 
