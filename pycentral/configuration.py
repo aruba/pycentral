@@ -353,7 +353,8 @@ class Devices(object):
             mentioned group
         :type device_serials: list
         :param preserve_config_overrides: List of device types for which configuration\
-            overrides should be preserved, e.g., ["AOS_CX"]
+            overrides should be preserved. This is only supported for AOS-CX switches\
+            today, e.g., ["AOS_CX"]
         :type preserve_config_overrides: list, optional
         :return: Response as provided by 'command' function in\
             class:`pycentral.ArubaCentralBase`.
