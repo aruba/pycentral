@@ -16,8 +16,8 @@ Package Structure
    │   │   ...
    │   │
    │   └───workflows
-   │       │   config_apsettings_from_csv.py
-   │       │   ...
+   │       │   workflows_utils.py
+   |       |   ...
    │   
    └───docs
        │   ...
@@ -47,6 +47,18 @@ workflows
 ``workflows`` folder contains scripts that combine multiple REST API calls based on function definitions in the ``pycentral`` 
 modules to achieve a network automation use-case involving multiple steps or repetitive actions that has to be done in scale. \
 Each script contains comments that describe step-by-step the operations being performed. 
+
+Check out the `central-python-workflows <https://github.com/aruba/central-python-workflows>`_ repository for workflows that utilize the Pycentral library. Some of the workflows are - 
+
+1. `Device Provisioning <https://github.com/aruba/central-python-workflows/tree/main/device_provisioning>`_
+
+2. `Device Onboarding <https://github.com/aruba/central-python-workflows/tree/main/device_onboarding>`_
+
+3. `MSP Customer Onboarding <https://github.com/aruba/central-python-workflows/tree/main/msp_customer_onboarding>`_
+
+4. `Inventory to Excel Workflows <https://github.com/aruba/central-python-workflows/tree/main/inventory_to_excel>`_
+
+5. `WLAN Workflows <https://github.com/aruba/central-python-workflows/tree/main/wlan_config>`_
 
 Executing scripts
 ^^^^^^^^^^^^^^^^^

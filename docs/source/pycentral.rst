@@ -8,14 +8,6 @@ Indices and tables
 pycentral package
 =================
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   pycentral.workflows
-
 pycentral.audit\_logs module
 ----------------------------
 
@@ -48,10 +40,10 @@ pycentral.configuration module
    :undoc-members:
    :show-inheritance:
 
-pycentral.constants module
---------------------------
+pycentral.device_inventory module
+---------------------------------
 
-.. automodule:: pycentral.constants
+.. automodule:: pycentral.device_inventory
    :members:
    :undoc-members:
    :show-inheritance:
@@ -76,6 +68,14 @@ pycentral.monitoring module
 ---------------------------
 
 .. automodule:: pycentral.monitoring
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pycentral.msp module
+---------------------------
+
+.. automodule:: pycentral.msp
    :members:
    :undoc-members:
    :show-inheritance:
@@ -120,10 +120,10 @@ pycentral.visualrf module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+Subpackages
+-----------
 
-.. automodule:: pycentral
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. toctree::
+   :maxdepth: 4
+
+   pycentral.workflows

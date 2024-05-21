@@ -1,6 +1,6 @@
 {
   "central_info": {
-    "base_url": "<api-gateway-domain-url>",
+    "cluster_name": "<name-of-cluster-of-aruba-central-account>",
     "token": {
       "access_token": "<api-gateway-access-token>"
     }
