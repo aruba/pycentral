@@ -25,7 +25,7 @@ setuptools.setup(
         'Development Status :: 4 - Beta'
     ],
     python_requires='>=3.8',
-    install_requires=['requests==2.32.0', 'PyYAML==6.0.1', 'urllib3==2.2.2', 'certifi==2024.7.4'],
+    install_requires=['requests==2.31.0', 'PyYAML==6.0.1', 'urllib3==2.2.2', 'certifi==2024.7.4'],
     extras_require={
         'colorLog': ["colorlog"]
     }
