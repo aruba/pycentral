@@ -101,7 +101,7 @@ class ArubaCentralBase:
     """
 
     def __init__(self, central_info, token_store=None, logger=None,
-                 ssl_verify=True, user_retries=10):
+                 ssl_verify=True, user_retries=10,session=None):
         """Constructor Method initializes access token. If user provides\
         access token, use the access token for API calls. Otherwise try to\
         reuse token from cache or try to generate new access token via OAUTH\
@@ -112,6 +112,7 @@ class ArubaCentralBase:
         self.logger = None
         self.ssl_verify = ssl_verify
         self.user_retries = user_retries
+        self.session = session
         # Set logger
         if logger:
             self.logger = logger
@@ -150,7 +151,10 @@ class ArubaCentralBase:
         )
         data = data.encode("utf-8")
         try:
-            s = requests.Session()
+            if self.session is None:
+                s = requests.Session()
+            else:
+                s = self.session
             req = requests.Request(
                 method="POST", url=url, data=data, headers=headers)
             prepped = s.prepare_request(req)
@@ -204,7 +208,10 @@ class ArubaCentralBase:
             "Cookie": "session=" + session_token
         }
         try:
-            s = requests.Session()
+            if self.session is None:
+                s = requests.Session()
+            else:
+                s = self.session
             req = requests.Request(
                 method="POST", url=url, data=data, headers=headers)
             prepped = s.prepare_request(req)
@@ -249,7 +256,10 @@ class ArubaCentralBase:
             base_url=self.central_info["base_url"], path=path, query=query)
 
         try:
-            s = requests.Session()
+            if self.session is None:
+                s = requests.Session()
+            else:
+                s = self.session
             req = requests.Request(method="POST", url=url)
             prepped = s.prepare_request(req)
             settings = s.merge_environment_settings(
@@ -389,7 +399,10 @@ class ArubaCentralBase:
                 base_url=self.central_info["base_url"], path=path, query=query
             )
 
-            s = requests.Session()
+            if self.session is None:
+                s = requests.Session()
+            else:
+                s = self.session
             req = requests.Request(method="POST", url=url)
             prepped = s.prepare_request(req)
             settings = s.merge_environment_settings(
@@ -550,7 +563,10 @@ class ArubaCentralBase:
             self.logger.error(str1)
 
         auth = BearerAuth(self.central_info["token"]["access_token"])
-        s = requests.Session()
+        if self.session is None:
+                s = requests.Session()
+        else:
+            s = self.session
         req = requests.Request(
             method=method,
             url=url,
