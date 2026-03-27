@@ -1,7 +1,7 @@
 # (C) Copyright 2025 Hewlett Packard Enterprise Development LP.
 # MIT License
 
-versions = ["v1alpha1", "v1"]
+versions = ["v1alpha1", "v1", "v1alpha2"]
 
 CATEGORIES = {
     "configuration": {
@@ -25,6 +25,16 @@ CATEGORIES = {
     "service_catalog": {
         "value": "service-catalog",
         "type": "glp",
+        "latest": "v1",
+    },
+    "notifications": {
+        "value": "network-notifications",
+        "type": "monitoring",
+        "latest": "v1",
+    },
+    "services": {
+        "value": "network-services",
+        "type": "monitoring",
         "latest": "v1",
     },
 }
