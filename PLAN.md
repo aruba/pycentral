@@ -11,7 +11,7 @@ All PRs implementing items from this plan must:
 
 ---
 
-## Prerequisite: `url_utils.py` updates
+## ✅ Prerequisite: `url_utils.py` updates — COMPLETE
 
 Before or alongside Phase 1, `pycentral/utils/url_utils.py` needs two changes:
 
@@ -39,7 +39,7 @@ Before or alongside Phase 1, `pycentral/utils/url_utils.py` needs two changes:
 
 ---
 
-## Phase 1 — High-impact gaps (Monitoring & Services)
+## ✅ Phase 1 — High-impact gaps (Monitoring & Services) — COMPLETE
 
 ### 1.1 Switch Monitoring — new file `pycentral/new_monitoring/switches.py`
 
@@ -129,7 +129,7 @@ curl -s "https://developer.arubanetworks.com/new-central-config/reference/getdev
 
 ---
 
-## Phase 2 — Services & Supporting Monitoring
+## ✅ Phase 2 — Services & Supporting Monitoring — COMPLETE
 
 ### 2.1 Firmware Details — `pycentral/services/firmware.py`
 
@@ -215,7 +215,7 @@ curl -s "https://developer.arubanetworks.com/new-central/reference/getlatrendsfo
 
 ---
 
-## Phase 3 — Troubleshooting Expansion
+## ✅ Phase 3 — Troubleshooting Expansion — COMPLETE (pre-existing)
 
 The existing `pycentral/troubleshooting/troubleshooting.py` only covers the events endpoint. Extend it
 (or add sub-modules) with the following. Verify all paths and request schemas before implementing —
@@ -266,7 +266,7 @@ curl -s "https://developer.arubanetworks.com/new-central/reference/appping?json=
 
 ---
 
-## Phase 4 — FloorPlan Management
+## ✅ Phase 4 — FloorPlan Management — COMPLETE
 
 New file: `pycentral/new_monitoring/floorplan.py`. New class: `FloorPlan`.
 This is a large surface area — implement in sub-groups.

@@ -7,6 +7,7 @@ from .scopes import Scopes
 from .scope_maps import ScopeMaps
 from .device import Device
 from .device_group import Device_Group
+from .device_group_api import DeviceGroupAPI
 
 __all__ = [
     "Site",
@@ -15,4 +16,5 @@ __all__ = [
     "ScopeMaps",
     "Device",
     "Device_Group",
+    "DeviceGroupAPI",
 ]

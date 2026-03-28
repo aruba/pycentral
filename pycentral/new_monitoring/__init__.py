@@ -3,3 +3,9 @@ from .devices import MonitoringDevices
 from .gateways import MonitoringGateways
 from .sites import MonitoringSites
 from .clients import Clients
+from .switches import MonitoringSwitches
+from .alerts import Alerts
+from .reporting import Reporting
+from .location import LocationServices
+from .location_analytics import LocationAnalytics
+from .floorplan import FloorPlan
