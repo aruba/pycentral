@@ -33,6 +33,22 @@ pip3 install --upgrade --pre pycentral
 
 ## Authentication
 
+### Unified Credentials (New Central & GLP)
+
+PyCentral supports a **unified credential** model that lets you use a single set of GLP client credentials to access both GLP and New Central APIs. Instead of providing separate `glp` and `new_central` credential blocks, you provide one `unified` block with your GLP `client_id`, `client_secret`, and `workspace_id`. The SDK generates one token through GLP auth and reuses it for both platforms.
+
+To also make New Central API calls, include `base_url` or `cluster_name` in the unified block. If omitted, only GLP calls are enabled.
+
+```python
+token_info = {
+    "unified": {
+        "client_id": "<glp-client-id>",
+        "client_secret": "<glp-client-secret>",
+        "workspace_id": "<workspace-id>",
+        "cluster_name": "uswest4"  # or "base_url"; omit for GLP-only
+    }
+}
+```
 ### New Central
 You will need:
   - **Base URL or Cluster Name**: Identifies your Central Account's API gateway. Both options function identically. Use whichever is convenient:
