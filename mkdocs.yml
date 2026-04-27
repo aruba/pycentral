@@ -47,11 +47,12 @@ nav:
       - Base Module: modules/base.md
       - Exceptions: modules/exceptions.md
       - GLP: modules/glp.md
+      - MSP: modules/msp.md
+      - Monitoring: modules/new_monitoring.md
       - Profiles: modules/profiles.md
-      - New Monitoring: modules/new_monitoring.md
       - Scopes: modules/scopes.md
-      - Troubleshooting: modules/troubleshooting.md
       - Streaming: modules/streaming.md
+      - Troubleshooting: modules/troubleshooting.md
       - Utils: modules/utils.md
       - Classic Modules: modules/classic.md
 
