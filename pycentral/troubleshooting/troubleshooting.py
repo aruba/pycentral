@@ -4827,7 +4827,7 @@ class Troubleshooting:
                 name optionally followed by a direction indicator 'asc' (ascending)
                 or 'desc' (descending). If direction is omitted, default is descending.
                 Supported field: timestamp. Max length 128.
-            next_cursor (int, optional): Specifies the pagination cursor for the next
+            next_cursor (int or str, optional): Specifies the pagination cursor for the next
                 page of resources. Minimum value is 1. Defaults to 1.
             limit (int, optional): Maximum number of events to be retrieved. Allowed
                 range is 1 to 1000. Defaults to 100.
