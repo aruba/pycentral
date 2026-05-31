@@ -4,7 +4,7 @@
 > This is a **pre-release version** of PyCentral-v2, and the features are constantly being updated as the APIs evolve. This version of the SDK allows you to make API calls to New Central, GLP, and Classic Central.  
 > If you are looking for the stable version of PyCentral (v1), it is still available and fully supported. PyCentral-v1, which only supports Classic Central, can be found [here](https://pypi.org/project/pycentral/).
 
-A Python SDK for interacting with **HPE Aruba Networking Central** via REST APIs.  
+A Python SDK for interacting with **Central** via REST APIs.  
 Automate onboarding, configuration, monitoring, and management for:
 - **New Central**
 - **HPE GreenLake Platform (GLP)**
@@ -147,5 +147,5 @@ The Classic Central functionality is still fully supported by the SDK and has be
 - <a href="https://pycentral.readthedocs.io/en/v1.4.3/" target="_blank">Python Module documentation</a>
 
 ### **Use-Cases and Workflows**
-- <a href="https://developer.arubanetworks.com/central/docs/python-getting-started" target="_blank">HPE Aruba Networking Developer Hub</a>
+- <a href="https://developer.arubanetworks.com/central/docs/python-getting-started" target="_blank">HPE Networking Developer Hub</a>
 - <a href="https://github.com/aruba/central-python-workflows/tree/main" target="_blank">central-python-workflows</a>

@@ -1,6 +1,6 @@
 # PyCentral Documentation
 
-PyCentral is a Python SDK that makes it easier to interact with HPE Aruba Networking Central and the HPE GreenLake Platform (GLP) through REST APIs. Instead of building and managing low-level HTTP requests, developers can:
+PyCentral is a Python SDK that makes it easier to interact with Central and the HPE GreenLake Platform (GLP) through REST APIs. Instead of building and managing low-level HTTP requests, developers can:
 
 - Authenticate securely
 - Configure and manage devices and subscriptions
@@ -22,12 +22,12 @@ PyCentral(v2) is the latest version of the SDK, designed for compatibility and s
 ## Versions
 
 PyCentral-v2 is currently in pre-release, and we welcome feedback [here](https://github.com/aruba/pycentral/issues) as we continue improving it.
-Today, there are two versions of PyCentral, each designed for different versions of HPE Aruba Networking Central
+Today, there are two versions of PyCentral, each designed for different versions of Central
 
 | Version                                                        | Supports                                                                                       | Notes                        |
 | :------------------------------------------------------------- | :--------------------------------------------------------------------------------------------- | :--------------------------- |
-| [v1](https://pypi.org/project/pycentral/)                      | HPE Aruba Networking Central (Classic Central)                                                 | Legacy Version               |
-| [v2(pre-release)](https://pypi.org/project/pycentral/2.0a19/) | HPE Aruba Networking Central(new Central), GLP, HPE Aruba Networking Central (Classic Central) | Backwards compatible with v1 |
+| [v1](https://pypi.org/project/pycentral/)                      | Classic Central                                                 | Legacy Version               |
+| [v2(pre-release)](https://pypi.org/project/pycentral/2.0a10/) | Central( or new Central), GLP, Classic Central | Backwards compatible with v1 |
 
 ## Quick Example
 

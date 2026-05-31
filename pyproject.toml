@@ -5,10 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pycentral"
 dynamic = ["version"]
-description = "HPE Aruba Networking Central Python Package"
+description = "Central Python Package"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
-authors = [{ name = "aruba-automation", email = "aruba-automation@hpe.com" }]
+authors = [{ name = "hpe-networking-automation", email = "networking-automation@hpe.com" }]
 classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "License :: OSI Approved :: MIT License",

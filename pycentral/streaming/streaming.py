@@ -59,6 +59,9 @@ class Streaming:
         filters=None,
     ):
         self.central_conn = central_conn
+        # cache the commonly used app route and token key to simplify lookups
+        self.app_route = self.central_conn._app_routes["new_central"]
+        self.token_key = self.app_route["token_key"]
         if event not in SUPPORTED_EVENTS:
             raise ValueError(
                 f"Unsupported event: {event}. Supported events: {list(SUPPORTED_EVENTS.keys())}"

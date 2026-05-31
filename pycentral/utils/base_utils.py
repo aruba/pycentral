@@ -303,7 +303,7 @@ def valid_url(url):
     Verify and return the URL in a valid format.
 
     If the URL is missing the https prefix, the function will prepend the prefix
-    after verifying that it's a valid base URL of an HPE Aruba Networking Central cluster.
+    after verifying that it's a valid base URL of an Central cluster.
 
     Args:
         url (str): Base URL for an HTTP request.

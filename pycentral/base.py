@@ -247,7 +247,7 @@ class NewCentralBase:
         files=None,
     ):
         """
-        Execute an API command to HPE Aruba Networking Central or GreenLake Platform.
+        Execute an API command to Central or GreenLake Platform.
 
         This is the primary method for making API calls from the SDK. It handles
         authentication, token refresh on expiry, request formatting, and response
@@ -267,7 +267,7 @@ class NewCentralBase:
             api_path (str): API endpoint path (e.g., "monitoring/v1/aps").
                 This is appended to the base_url configured in token_info.
             app_name (str, optional): Target application for the API call.
-                Use "new_central" for HPE Aruba Networking Central APIs (default).
+                Use "new_central" for Central APIs (default).
                 Use "glp" for GreenLake Platform APIs.
             api_data (dict, optional): Request body/payload to be sent. Automatically
                 serialized to JSON if Content-Type is application/json. Defaults to None.
