@@ -328,6 +328,23 @@ class NewCentralBase:
                     )
                     self._renew_token(route["token_key"])
                     retry += 1
+                elif resp.status_code == 429:
+                    # Allowing one retry on 429 in case rate limit hit
+                    # Pausing 1 second should allow the retry to succeed
+                    # if it doesn't, we log the error and exit
+                    if retry >= 2:
+                        self.logger.error(
+                            f"Received error 429 on requesting url "
+                            f"{url} with resp {resp.text}. Retry attempts exhausted."
+                        )
+                        limit_reached = True
+                        break
+                    self.logger.info(
+                        f"Received error 429 - {app_name} rate limit reached."
+                        f" Pausing before retry {retry + 1}/2..."
+                    )
+                    time.sleep(1)
+                    retry += 1
                 else:
                     break
 
