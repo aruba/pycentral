@@ -1,8 +1,8 @@
 from ..utils.monitoring_utils import execute_get
 from ..exceptions import ParameterError
+from .constants import DEVICE_LIMIT
 
 MONITOR_TYPE = "devices"
-DEVICE_LIMIT = 1000
 
 
 class MonitoringDevices:

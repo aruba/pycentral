@@ -4,8 +4,7 @@ from ..utils.monitoring_utils import (
     _validate_mac_address,
 )
 from ..exceptions import ParameterError
-
-CLIENT_LIMIT = 1000
+from .constants import CLIENT_LIMIT
 
 
 class Clients:

@@ -1,10 +1,10 @@
 from ..utils.monitoring_utils import execute_get, simplified_site_resp
 from ..exceptions import ParameterError
+from .constants import SITE_LIMIT
 
 # Sites doesn't really abide by the same pattern as other monitor types
 # Should we keep?
 MONITOR_TYPE = "sites"
-SITE_LIMIT = 100
 
 
 class MonitoringSites:
