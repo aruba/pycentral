@@ -4,7 +4,9 @@ from pycentral.utils.url_utils import generate_url
 
 from ..exceptions import ParameterError
 import re
-
+MAX_SITE_ID_LEN = 128
+MAX_QUERY_LEN = 256
+MAX_SERIAL_LEN = 16
 
 DEFAULT_MAX_PERIOD_DAYS = 90
 
@@ -120,7 +122,7 @@ def generate_timestamp_str(
     return f"timestamp gt {start_time} and timestamp lt {end_time}"
 
 
-def execute_get(central_conn, endpoint, params={}, version="latest"):
+def execute_get(central_conn, endpoint, params=None, version="latest"):
     """Execute a GET request to the monitoring API.
 
     Args:
@@ -139,7 +141,7 @@ def execute_get(central_conn, endpoint, params={}, version="latest"):
     if not central_conn:
         raise ParameterError("central_conn(Central connection) is required")
 
-    if not endpoint or not isinstance(endpoint, str) and len(endpoint) == 0:
+    if not isinstance(endpoint, str) or not endpoint:
         raise ParameterError("endpoint is required and must be a string")
 
     if endpoint.startswith("/"):
@@ -147,7 +149,7 @@ def execute_get(central_conn, endpoint, params={}, version="latest"):
         endpoint = endpoint.lstrip("/")
 
     path = generate_url(endpoint, "monitoring", version)
-    resp = central_conn.command("GET", path, api_params=params)
+    resp = central_conn.command("GET", path, api_params=params or {})
 
     if resp["code"] != 200:
         raise Exception(
@@ -206,7 +208,7 @@ def _groups_to_dict(groups_list):
     return result
 
 
-def clean_switch_trend_data(raw_response):
+def _clean_switch_trend_data(raw_response):
     """Process switch trend responses into a normalized list.
 
     Handles all formats returned by the switch trend endpoints:
@@ -356,25 +358,6 @@ def _validate_mac_address(mac):
     return True
 
 
-def validate_device_serial(serial_number):
-    """
-    Validate device serial number.
-
-    Args:
-        serial_number (str): Device serial number to validate.
-
-    Raises:
-        ParameterError: If serial_number is missing or not a string.
-
-    Note:
-        Internal SDK function
-    """
-    if not isinstance(serial_number, str) or not serial_number:
-        raise ParameterError(
-            "serial_number is required and must be a string"
-        )
-
-
 def validate_central_conn_and_serial(central_conn, serial_number):
     """
     Validate central connection and device serial number.
@@ -395,3 +378,275 @@ def validate_central_conn_and_serial(central_conn, serial_number):
         raise ParameterError(
             "serial_number is required and must be a string"
         )
+
+def validate_site_id(site_id):
+    if site_id is not None and len(site_id) > MAX_SITE_ID_LEN:
+        raise ParameterError(
+            f"site_id cannot exceed {MAX_SITE_ID_LEN} characters"
+        )
+
+
+def validate_query_length(name, value, max_length=MAX_QUERY_LEN):
+    """Raise ParameterError if a query string parameter exceeds the allowed length.
+
+    Args:
+        name (str): Parameter name (used in error message).
+        value (str|None): Parameter value to check.
+        max_length (int, optional): Maximum allowed character length. Defaults to MAX_QUERY_LEN.
+
+    Raises:
+        ParameterError: If value is not None and exceeds max_length.
+    """
+    if value is not None and len(value) > max_length:
+        raise ParameterError(f"{name} cannot exceed {max_length} characters")
+
+
+def validate_limit_and_next(limit, next_page, max_limit, next_name="next_page"):
+    """Raise ParameterError if pagination parameters are out of range.
+
+    Args:
+        limit (int): Requested page size.
+        next_page (int): Page cursor/index (must be >= 1).
+        max_limit (int): Maximum allowed value for limit.
+        next_name (str, optional): Name of the next_page parameter for error messages.
+
+    Raises:
+        ParameterError: If limit exceeds max_limit or next_page is less than 1.
+    """
+    if limit > max_limit:
+        raise ParameterError(f"limit cannot exceed {max_limit}")
+    if next_page < 1:
+        raise ParameterError(f"{next_name} must be 1 or greater")
+
+
+def validate_required_value(name, value):
+    """Raise ParameterError if a required parameter is missing or empty.
+
+    Args:
+        name (str): Parameter name (used in error message).
+        value (Any): Parameter value to check.
+
+    Raises:
+        ParameterError: If value is None or an empty string.
+    """
+    if value is None or value == "":
+        raise ParameterError(f"{name} is required")
+
+
+def validate_serial_query(serial_number, max_len=MAX_SERIAL_LEN):
+    """Raise ParameterError if an optional serial_number query parameter exceeds max_len.
+
+    Args:
+        serial_number (str|None): Serial number to validate. Skipped if None.
+        max_len (int, optional): Maximum allowed length. Defaults to MAX_SERIAL_LEN.
+
+    Raises:
+        ParameterError: If serial_number is not None and exceeds max_len.
+    """
+    if serial_number is not None and len(serial_number) > max_len:
+        raise ParameterError(f"serial_number cannot exceed {max_len} characters")
+
+
+def normalize_metric(metric, allowed_metrics, name="metric"):
+    """Validate and normalize a metric string against a set of allowed values.
+
+    Args:
+        metric (str): Metric name provided by the caller.
+        allowed_metrics (dict|set): Collection of allowed metric names (lowercase).
+        name (str, optional): Parameter name for error messages. Defaults to 'metric'.
+
+    Returns:
+        (str): Normalized (stripped, lowercased) metric name.
+
+    Raises:
+        ParameterError: If metric is not a non-empty string or is not in allowed_metrics.
+    """
+    if not isinstance(metric, str) or not metric:
+        raise ParameterError(f"{name} is required and must be a string")
+    normalized = metric.strip().lower()
+    if normalized not in allowed_metrics:
+        supported = ", ".join(sorted(allowed_metrics))
+        raise ParameterError(
+            f"Unsupported {name} '{metric}'. Supported values: {supported}"
+        )
+    return normalized
+
+
+def build_trend_params(
+    start_time=None,
+    end_time=None,
+    duration=None,
+    site_id=None,
+    extra_params=None,
+):
+    """Build a query-parameter dict for trend endpoints.
+
+    Validates site_id, merges extra_params, and generates a timestamp filter string
+    when any time argument is provided.
+
+    Args:
+        start_time (int|str, optional): Start time (epoch seconds or RFC3339).
+        end_time (int|str, optional): End time (epoch seconds or RFC3339).
+        duration (str|int, optional): Duration string (e.g. '3h') or seconds.
+        site_id (str, optional): Site identifier; validated against MAX_SITE_ID_LEN.
+        extra_params (dict, optional): Additional parameters to merge into the result.
+
+    Returns:
+        (dict|None): Parameter dict, or None if no parameters are set.
+
+    Raises:
+        ParameterError: If site_id is too long or timestamp arguments are invalid.
+    """
+    params = {}
+    if site_id is not None:
+        validate_site_id(site_id)
+        params["site-id"] = site_id
+    if extra_params:
+        params.update(extra_params)
+    if start_time is None and end_time is None and duration is None:
+        return params
+    try:
+        params["filter"] = generate_timestamp_str(
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+        )
+    except ValueError as e:
+        raise ParameterError(str(e)) from e
+    return params
+
+
+def normalize_trend_response(response, return_raw_response=False):
+    """Normalize a raw trend API response from any device type.
+
+    Dispatches to the appropriate cleaner based on the response shape:
+    - Switch responses are wrapped in a ``"response"`` key and are handled
+      by ``_clean_switch_trend_data``.
+    - AP/gateway responses use a ``"graph"`` key and are handled by
+      ``clean_raw_trend_data``.
+    - Some gateway endpoints wrap the single trend object in a list; such
+      single-element lists are unwrapped to a dict before processing.
+
+    If return_raw_response is True the response is returned as-is (after any
+    single-element list unwrapping so callers always receive a dict).
+
+    Args:
+        response (dict|list): Raw API response.
+        return_raw_response (bool, optional): Return raw payload when True.
+
+    Returns:
+        (dict|list): Raw response or normalized sorted list of trend samples.
+    """
+    # Some gateway trend endpoints return their result wrapped in a list
+    # (one item per metric series / sensor).  Unwrap single-element lists so
+    # downstream logic treats them as a plain dict; aggregate multi-element
+    # lists by merging all series into a single timeline.
+    if isinstance(response, list):
+        if len(response) == 1 and isinstance(response[0], dict):
+            response = response[0]
+        else:
+            # Multi-series list (e.g. hardware-temperature with several sensors).
+            if return_raw_response:
+                return response
+            data = {}
+            for item in response:
+                if isinstance(item, dict):
+                    data = clean_raw_trend_data(item, data=data)
+            return merged_dict_to_sorted_list(data)
+
+    if return_raw_response:
+        return response
+    if not isinstance(response, dict):
+        return response
+    if "response" in response:
+        return _clean_switch_trend_data(response)
+    data = clean_raw_trend_data(response)
+    return merged_dict_to_sorted_list(data)
+
+
+def execute_trend_request(
+    central_conn,
+    base_path,
+    serial_number,
+    metric,
+    metric_map,
+    resource_path=None,
+    start_time=None,
+    end_time=None,
+    duration=None,
+    site_id=None,
+    extra_params=None,
+    return_raw_response=False,
+):
+    """Execute a trend API request for a monitoring resource.
+
+    Args:
+        central_conn (NewCentralBase): Central connection object.
+        base_path (str): Base endpoint path (e.g. 'aps', 'gateways').
+        serial_number (str): Device serial number.
+        metric (str): Metric name to retrieve.
+        metric_map (dict): Mapping of metric names to endpoint path segments.
+        resource_path (str, optional): Sub-resource path segment (e.g. 'ports/1').
+        start_time (int|str, optional): Start time for range queries.
+        end_time (int|str, optional): End time for range queries.
+        duration (str, optional): Duration string (e.g. '3h').
+        site_id (str, optional): Site identifier.
+        extra_params (dict, optional): Additional query parameters.
+        return_raw_response (bool, optional): Return raw API payload when True.
+
+    Returns:
+        (dict|list): Raw response or normalized trend samples.
+    """
+    validate_central_conn_and_serial(central_conn, serial_number)
+    metric = normalize_metric(metric, metric_map)
+    params = build_trend_params(
+        start_time=start_time,
+        end_time=end_time,
+        duration=duration,
+        site_id=site_id,
+        extra_params=extra_params,
+    )
+    path = f"{base_path}/{serial_number}"
+    if resource_path:
+        path = f"{path}/{resource_path}"
+    path = f"{path}/{metric_map[metric]}"
+    response = execute_get(central_conn, endpoint=path, params=params)
+    return normalize_trend_response(response, return_raw_response)
+
+
+def get_all_pages(method, limit, next_arg_name="next_page", **kwargs):
+    """Fetch all pages from a paginated monitoring API method.
+
+    Calls *method* repeatedly, passing the current page cursor via the keyword
+    argument named *next_arg_name*, until all items have been retrieved.
+
+    Args:
+        method (callable): Single-page fetch method.  Must accept ``limit`` and
+            the keyword named by *next_arg_name*, plus any additional **kwargs.
+        limit (int): Page size to request on each call.
+        next_arg_name (str, optional): Name of the pagination cursor parameter.
+            Defaults to 'next_page'.
+        **kwargs (Any): Additional keyword arguments forwarded to *method* on every call.
+
+    Returns:
+        (list[dict]): Aggregated list of all items across all pages.
+    """
+    items = []
+    total = None
+    next_page = 1
+
+    while True:
+        response = method(limit=limit, **{next_arg_name: next_page}, **kwargs)
+        if total is None:
+            total = response.get("total", 0)
+
+        items.extend(response.get("items", []))
+        if len(items) >= total:
+            break
+
+        next_value = response.get("next")
+        if next_value is None:
+            break
+        next_page = int(next_value)
+
+    return items

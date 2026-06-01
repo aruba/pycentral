@@ -1,13 +1,16 @@
 import ssl
+import threading
+import signal
+from urllib.parse import urlencode
+
 import websocket
+from google.protobuf.json_format import MessageToDict
+
 from .events.audit import audit_trail_pb2
 from .events.location import location_pb2
 from .events.location_analytics import location_analytics_pb2
 from .events.geofence import geofence_pb2
 from .events.event import event_pb2
-from google.protobuf.json_format import MessageToDict
-import threading
-import signal
 
 VERSION = "v1alpha1"
 # Central-mandated ping settings (not user-configurable)
@@ -25,7 +28,7 @@ SUPPORTED_EVENTS = {
 
 class Streaming:
     """
-    Minimal WebSocket streaming client for HPE Aruba Networking Central.
+    Minimal WebSocket streaming client for Central.
 
     Responsibilities:
         - Build the WSS URL for the selected streaming endpoint.
@@ -59,6 +62,9 @@ class Streaming:
         filters=None,
     ):
         self.central_conn = central_conn
+        # cache the commonly used app route and token key to simplify lookups
+        self.app_route = self.central_conn._app_routes["new_central"]
+        self.token_key = self.app_route["token_key"]
         if event not in SUPPORTED_EVENTS:
             raise ValueError(
                 f"Unsupported event: {event}. Supported events: {list(SUPPORTED_EVENTS.keys())}"
@@ -107,11 +113,8 @@ class Streaming:
         Returns:
             list[str]: Header strings ready for websocket.WebSocketApp.
         """
-        token = self.central_conn.token_info["new_central"]["access_token"]
-        headers = [f"Authorization: Bearer {token}"]
-        if self.filters:
-            headers.append(f"event-types: {self.filters}")
-        return headers
+        token = self.central_conn.token_info[self.token_key]["access_token"]
+        return [f"Authorization: Bearer {token}"]
 
     def _on_message(self, ws, message):
         """Handle incoming WebSocket messages.
@@ -161,7 +164,7 @@ class Streaming:
         if isinstance(error, websocket.WebSocketBadStatusException):
             if error.status_code == 401:
                 try:
-                    self.central_conn.handle_expired_token("new_central")
+                    self.central_conn._renew_token(self.token_key)
                     self.logger.info("Token refreshed. Will reconnect.")
                 except Exception as refresh_error:
                     self.logger.error(f"Token refresh failed: {refresh_error}")
@@ -205,17 +208,21 @@ class Streaming:
         """Build the WebSocket Secure (WSS) URL for the configured event.
 
         The URL is constructed using the Central base URL from the
-        connection object and the event-specific endpoint.
+        connection object and the event-specific endpoint. If filters
+        are configured, they are appended as the ``event-types`` query
+        parameter.
 
         Returns:
             str: Fully qualified WSS URL for the streaming endpoint.
         """
-        base_url = self.central_conn.token_info["new_central"][
-            "base_url"
-        ].rstrip("/")
+        base_url = self.app_route["base_url"].rstrip("/")
         # Strip any scheme so we can always prefix with wss://
         host = base_url.replace("https://", "", 1).replace("http://", "", 1)
-        return f"wss://{host}/network-services/{VERSION}/{self.endpoint}"
+        url = f"wss://{host}/network-services/{VERSION}/{self.endpoint}"
+        if self.filters:
+            query_filter = urlencode({"event-types": self.filters})
+            url = f"{url}?{query_filter}"
+        return url
 
     def stream(self, callback=None):
         """Start streaming messages for the configured event.
@@ -253,7 +260,7 @@ class Streaming:
                         on_message=self._on_message,
                     )
 
-                    self.logger.info(f"Connecting to {url}...")
+                    self.logger.info(f"Connecting to {url.split('?')[0]}...")
                     self.ws.run_forever(
                         sslopt={"cert_reqs": ssl.CERT_NONE},
                         ping_interval=_PING_INTERVAL,

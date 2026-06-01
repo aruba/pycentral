@@ -1,3 +1,51 @@
+# 2.0a20
+
+This release significantly expands the monitoring module coverage for APs, Gateways, and WLANs, adds 429 rate-limit retry handling, fixes streaming WebSocket client issues, and updates product branding across the SDK.
+
+### New Features
+
+- **Expanded AP Monitoring Module**
+  - Added fleet-level retrieval methods: `get_all_radios`, `get_radios`, `get_all_bssids`, `get_bssids`, `get_all_swarms`, `get_swarms`, `get_swarm_details`
+  - Added per-AP sub-resource methods: `get_ap_radios`, `get_ap_ports`, `get_all_ap_tunnels`, `get_ap_tunnels`, `get_ap_tunnel_details`, `get_ap_wlans`
+  - Added trend endpoints: `get_ap_trends` (throughput, CPU, memory, power consumption), `get_ap_radio_trends` (throughput, channel utilization/quality, noise floor, frames), `get_ap_port_trends` (throughput, frames, CRC, collisions), `get_ap_tunnel_trends` (throughput, packet loss, MOS, jitter, latency)
+- **Expanded Gateway Monitoring Module**
+  - Added sub-resource methods: `get_all_gateway_ports`, `get_gateway_ports`, `get_gateway_port_details`, `get_all_gateway_vlans`, `get_gateway_vlans`, `get_gateway_vlan_details`, `get_all_gateway_tunnels`, `get_gateway_tunnels`, `get_gateway_tunnel_details`, `get_gateway_uplinks`, `get_gateway_uplink_details`, `get_all_gateway_dhcp_pools`, `get_gateway_dhcp_pools`, `get_all_gateway_dhcp_clients`, `get_gateway_dhcp_clients`
+  - Added trend endpoints: `get_gateway_trends` (CPU, memory, WAN/VPN availability, hardware temperature), `get_gateway_port_trends` (throughput, frames, errors, packets), `get_gateway_tunnel_trends` (throughput, status, dropped packets), `get_gateway_uplink_trends` (throughput, WAN compression, WAN availability)
+  - Added uplink probe methods: `get_gateway_uplink_probes`, `get_gateway_uplink_probe_performance_trends`, `get_gateway_uplink_vpn_availability_trends`
+  - Added tunnel health: `get_gateway_tunnel_health_summary` (LAN/WAN)
+  - Added cluster methods: `get_all_cluster_members`, `get_cluster_members`, `get_all_cluster_tunnels`, `get_cluster_tunnels`, `get_cluster_vlan_mismatch`, `get_cluster_connectivity_graph`, `get_cluster_tunnel_summary`, `get_cluster_capacity_trends`
+- **WLAN Monitoring Module**
+  - Added `WLAN` class with `get_all_wlans` and `get_wlans` methods supporting site_id, serial_number, filter, and sort parameters
+- **429 Rate-Limit Retry**
+  - `NewCentralBase.command()` now retries once after a 1-second pause when a 429 (Too Many Requests) response is received; logs an error and exits if the second attempt also fails
+
+### Bug Fixes
+
+- **Streaming WebSocket Client**
+  - Event-type filters are now sent as URL query parameters instead of custom headers, fixing filter delivery to the server
+  - Token refresh uses internal `_renew_token()` instead of deprecated `handle_expired_token()`
+  - Cached `app_route` and `token_key` for correct internal lookups
+  - Query parameters are stripped from connection log messages for readability
+
+### Improvements
+
+- **Shared Monitoring Utilities**
+  - Added `get_all_pages` — generic pagination helper that replaces per-module while loops
+  - Added `execute_trend_request` and `normalize_trend_response` — unified trend endpoint execution and response normalization
+  - Added validation helpers: `validate_site_id`, `validate_query_length`, `validate_limit_and_next`, `validate_required_value`, `validate_serial_query`, `normalize_metric`, `build_trend_params`
+  - Fixed `execute_get` default params (mutable default argument) and endpoint validation logic
+  - Renamed `clean_switch_trend_data` → `_clean_switch_trend_data` (internal)
+- **Constants Consolidation**
+  - Extracted all pagination limits (AP_LIMIT, GATEWAY_LIMIT, SWITCH_LIMIT, etc.) into `pycentral/new_monitoring/constants.py`
+- **Branding Update**
+  - Shortened "HPE Aruba Networking Central" references to "Central" across documentation, docstrings, and project metadata
+  - Updated project author to `hpe-networking-automation`
+- Switches module refactored to use shared `get_all_pages`, `build_trend_params`, and validation utilities
+- Updated monitoring API reference documentation with endpoint tables for APs, Gateways, and WLANs
+- Fixed `next_cursor` type annotation in troubleshooting docstring (`int` → `int or str`)
+
+Full Changelog: [v2.0a19...v2.0a20](https://github.com/aruba/pycentral/compare/v2.0a19...v2.0a20)
+
 # 2.0a19
 
 This release introduces MSP tenant connection management, a new Switches monitoring module, expanded troubleshooting event capabilities, ISO location validation for site creation, and refactored shared monitoring utilities.

@@ -1,299 +1,385 @@
-from ..utils.monitoring_utils import (
-    execute_get,
-    generate_timestamp_str,
-    clean_raw_trend_data,
-    merged_dict_to_sorted_list,
-    validate_central_conn_and_serial,
-)
 from ..exceptions import ParameterError
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from ..utils.monitoring_utils import (
+    build_trend_params,
+    clean_raw_trend_data,
+    execute_get,
+    get_all_pages,
+    merged_dict_to_sorted_list,
+    normalize_metric,
+    normalize_trend_response,
+    validate_central_conn_and_serial,
+    validate_limit_and_next,
+    validate_query_length,
+    validate_required_value,
+    validate_site_id,
+)
+from .constants import (
+    CLUSTER_LIMIT,
+    GATEWAY_DHCP_LIMIT,
+    GATEWAY_LIMIT,
+    GATEWAY_VLAN_LIMIT,
+)
 
-GATEWAY_LIMIT = 100
 MONITOR_TYPE = "gateways"
-API_VERSION = "v1alpha1"
+CLUSTER_MONITOR_TYPE = "clusters"
+
+GATEWAY_TREND_METRICS = {
+    "cpu-utilization": "cpu-utilization-trends",
+    "memory-utilization": "memory-utilization-trends",
+    "wan-availability": "wan-availability-trends",
+    "vpn-availability": "vpn-availability-trends",
+    "hardware-temperature": "hardware-temperature-trends",
+}
+PORT_TREND_METRICS = {
+    "throughput": "throughput-trends",
+    "frames": "frames-trends",
+    "frames-errors": "frames-errors-trends",
+    "frames-packets": "frames-packets-trends",
+}
+TUNNEL_TREND_METRICS = {
+    "throughput": "throughput-trends",
+    "status": "status-trends",
+    "dropped-packets": "dropped-packet-trends",
+}
+UPLINK_TREND_METRICS = {
+    "throughput": "throughput-trends",
+    "wan-compression": "wan-compression-trends",
+    "wan-availability": "wan-availability-trends",
+}
 
 
 class MonitoringGateways:
     @staticmethod
     def get_all_gateways(central_conn, filter_str=None, sort=None):
-        """
-        Retrieve all gateways, handling pagination.
-
-        Args:
-            central_conn (NewCentralBase): Central connection object.
-            filter_str (str, optional): Optional filter expression (supported fields documented in API Reference Guide).
-            sort (str, optional): Optional sort parameter (supported fields documented in API Reference Guide).
-
-        Returns:
-            (list[dict]): List of gateway items.
-        """
-        gateways = []
-        total_gateways = None
-        limit = GATEWAY_LIMIT
-        next = 1
-        # Loop to get all gateways with pagination
-        while True:
-            response = MonitoringGateways.get_gateways(
-                central_conn, limit=limit, next=next
-            )
-            if total_gateways is None:
-                total_gateways = response.get("total", 0)
-            gateways.extend(response.get("items", []))
-            if len(gateways) >= total_gateways:
-                break
-            next += 1
-
-        return gateways
+        """Retrieve all gateways, handling pagination."""
+        return get_all_pages(
+            MonitoringGateways.get_gateways,
+            limit=GATEWAY_LIMIT,
+            central_conn=central_conn,
+            filter_str=filter_str,
+            sort=sort,
+        )
 
     @staticmethod
     def get_gateways(
-        central_conn, filter_str=None, sort=None, limit=GATEWAY_LIMIT, next=1
+        central_conn,
+        filter_str=None,
+        sort=None,
+        limit=GATEWAY_LIMIT,
+        next_page=1,
     ):
-        """
-        Retrieve a single page of gateways, including optional filtering and sorting as supported by the API.
+        """Retrieve a single page of gateways."""
+        validate_limit_and_next(limit, next_page, GATEWAY_LIMIT)
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("sort", sort)
 
-        This method makes an API call to the following endpoint - `GET network-monitoring/v1alpha1/gateways`
-
-        Args:
-            central_conn (NewCentralBase): Central connection object.
-            filter_str (str, optional): Optional filter expression (supported fields documented in API Reference Guide).
-            sort (str, optional): Optional sort parameter (supported fields documented in API Reference Guide).
-            limit (int, optional): Number of entries to return (default is 100).
-            next (int, optional): Pagination cursor/index for next page (default is 1).
-
-        Returns:
-            (dict):  API response containing keys like 'items', 'total', and 'next'.
-        """
-        params = {
-            "limit": limit,
-            "next": next,
-            "filter": filter_str,
-            "sort": sort,
-        }
-
-        path = MONITOR_TYPE
-        return execute_get(central_conn, endpoint=path, params=params, version=API_VERSION)
-
-    @staticmethod
-    def get_cluster_leader_details(central_conn, cluster_name):
-        """
-        Get details for the leader of a gateway cluster.
-
-        This method makes an API call to the following endpoint - `GET network-monitoring/v1alpha1/clusters/{cluster_name}/leader`
-
-        Args:
-            central_conn (NewCentralBase): Central connection object.
-            cluster_name (str): Name of the cluster.
-
-        Returns:
-            (dict): API response for the cluster leader.
-
-        Raises:
-            ParameterError: If cluster_name is missing or not a string.
-        """
-        if not cluster_name or not isinstance(cluster_name, str):
-            raise ParameterError(
-                "cluster_name is required and must be a string"
-            )
-        path = f"clusters/{cluster_name}/leader"
-
-        return execute_get(central_conn, endpoint=path, version=API_VERSION)
+        return execute_get(
+            central_conn,
+            endpoint=MONITOR_TYPE,
+            params={
+                "filter": filter_str,
+                "sort": sort,
+                "limit": limit,
+                "next": next_page,
+            },
+        )
 
     @staticmethod
     def get_gateway_details(central_conn, serial_number):
-        """
-        Get details for a specific gateway.
-
-        This method makes an API call to the following endpoint - `GET network-monitoring/v1alpha1/gateways/{serial_number}`
-
-        Args:
-            central_conn (NewCentralBase): Central connection object.
-            serial_number (str): Serial number of the gateway.
-
-        Returns:
-            (dict): API response with gateway details.
-
-        Raises:
-            ParameterError: If central_conn is None or serial_number is missing/invalid.
-        """
+        """Get details for a specific gateway."""
         validate_central_conn_and_serial(central_conn, serial_number)
-        path = f"{MONITOR_TYPE}/{serial_number}"
-        return execute_get(central_conn, endpoint=path, version=API_VERSION)
+        return execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}",
+        )
 
     @staticmethod
-    def get_gateway_interfaces(
+    def get_all_gateway_ports(
+        central_conn,
+        serial_number,
+        filter_str=None,
+        sort=None,
+    ):
+        """Retrieve all gateway ports, handling pagination."""
+        return get_all_pages(
+            MonitoringGateways.get_gateway_ports,
+            limit=GATEWAY_LIMIT,
+            central_conn=central_conn,
+            serial_number=serial_number,
+            filter_str=filter_str,
+            sort=sort,
+        )
+
+    @staticmethod
+    def get_gateway_ports(
         central_conn,
         serial_number,
         filter_str=None,
         sort=None,
         limit=GATEWAY_LIMIT,
-        next=1,
+        next_page=1,
     ):
-        """
-        Retrieve port/interface details for a gateway.
-
-        This method makes an API call to the following endpoint - `GET network-monitoring/v1alpha1/gateways/{serial_number}/ports`
-
-        Args:
-            central_conn (NewCentralBase): Central connection object.
-            serial_number (str): Serial number of the gateway.
-            filter_str (str, optional): Optional filter expression (supported fields documented in API Reference Guide).
-            sort (str, optional): Optional sort parameter (supported fields documented in API Reference Guide).
-            limit (int, optional): Number of entries to return (default is 100).
-            next (int, optional): Pagination cursor/index for next page (default is 1).
-
-        Returns:
-            (dict): API response for the ports endpoint.
-
-        Raises:
-            ParameterError: If central_conn is None or serial_number is missing/invalid.
-        """
+        """Retrieve a single page of gateway ports."""
         validate_central_conn_and_serial(central_conn, serial_number)
-        params = {
-            "limit": limit,
-            "next": next,
-            "filter": filter_str,
-            "sort": sort,
-        }
-        path = f"{MONITOR_TYPE}/{serial_number}/ports"
-        return execute_get(central_conn, endpoint=path, params=params, version=API_VERSION)
+        validate_limit_and_next(limit, next_page, GATEWAY_LIMIT)
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("sort", sort)
+
+        return execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}/ports",
+            params={
+                "filter": filter_str,
+                "sort": sort,
+                "limit": limit,
+                "next": next_page,
+            },
+        )
 
     @staticmethod
-    def get_gateway_lan_tunnels(
+    def get_gateway_port_details(central_conn, serial_number, port_number):
+        """Get details for a specific gateway port."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_required_value("port_number", port_number)
+        return execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}/ports/{port_number}",
+        )
+
+    @staticmethod
+    def get_all_gateway_vlans(
+        central_conn,
+        serial_number,
+        filter_str=None,
+        sort=None,
+    ):
+        """Retrieve all gateway VLANs, handling pagination."""
+        return get_all_pages(
+            MonitoringGateways.get_gateway_vlans,
+            limit=GATEWAY_VLAN_LIMIT,
+            central_conn=central_conn,
+            serial_number=serial_number,
+            filter_str=filter_str,
+            sort=sort,
+        )
+
+    @staticmethod
+    def get_gateway_vlans(
+        central_conn,
+        serial_number,
+        filter_str=None,
+        sort=None,
+        limit=GATEWAY_VLAN_LIMIT,
+        next_page=1,
+    ):
+        """Retrieve a single page of gateway VLANs."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_limit_and_next(limit, next_page, GATEWAY_VLAN_LIMIT)
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("sort", sort)
+
+        return execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}/vlans",
+            params={
+                "filter": filter_str,
+                "sort": sort,
+                "limit": limit,
+                "next": next_page,
+            },
+        )
+
+    @staticmethod
+    def get_gateway_vlan_details(central_conn, serial_number, vlan_id):
+        """Get details for a specific gateway VLAN."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_required_value("vlan_id", vlan_id)
+        return execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}/vlans/{vlan_id}",
+        )
+
+    @staticmethod
+    def get_all_gateway_tunnels(
+        central_conn,
+        serial_number,
+        filter_str=None,
+        sort=None,
+    ):
+        """Retrieve all gateway tunnels, handling pagination."""
+        return get_all_pages(
+            MonitoringGateways.get_gateway_tunnels,
+            limit=GATEWAY_LIMIT,
+            central_conn=central_conn,
+            serial_number=serial_number,
+            filter_str=filter_str,
+            sort=sort,
+        )
+
+    @staticmethod
+    def get_gateway_tunnels(
         central_conn,
         serial_number,
         filter_str=None,
         sort=None,
         limit=GATEWAY_LIMIT,
-        next=1,
+        next_page=1,
     ):
-        """
-        Retrieve LAN tunnel details for a gateway.
-
-        This method makes an API call to the following endpoint - `GET network-monitoring/v1alpha1/gateways/{serial_number}/lan-tunnels`
-
-        Args:
-            central_conn (NewCentralBase): Central connection object.
-            serial_number (str): Serial number of the gateway.
-            filter_str (str, optional): Optional filter expression (supported fields documented in API Reference Guide).
-            sort (str, optional): Optional sort parameter (supported fields documented in API Reference Guide).
-            limit (int, optional): Number of entries to return (default is 100).
-            next (int, optional): Pagination cursor/index for next page (default is 1).
-
-        Returns:
-            (dict): API response for the lan-tunnels endpoint.
-
-        Raises:
-            ParameterError: If central_conn is None or serial_number is missing/invalid.
-        """
+        """Retrieve a single page of gateway tunnels."""
         validate_central_conn_and_serial(central_conn, serial_number)
-        params = {
-            "limit": limit,
-            "next": next,
-            "filter": filter_str,
-            "sort": sort,
-        }
-        path = f"{MONITOR_TYPE}/{serial_number}/lan-tunnels"
-        return execute_get(central_conn, endpoint=path, params=params, version=API_VERSION)
+        validate_limit_and_next(limit, next_page, GATEWAY_LIMIT)
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("sort", sort)
+
+        return execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}/tunnels",
+            params={
+                "filter": filter_str,
+                "sort": sort,
+                "limit": limit,
+                "next": next_page,
+            },
+        )
 
     @staticmethod
-    def get_gateway_stats(
+    def get_gateway_tunnel_details(central_conn, serial_number, tunnel_name):
+        """Get details for a specific gateway tunnel."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_required_value("tunnel_name", tunnel_name)
+        return execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}/tunnels/{tunnel_name}"
+        )
+
+    @staticmethod
+    def get_gateway_uplinks(central_conn, serial_number, sort=None):
+        """Retrieve gateway uplinks."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_query_length("sort", sort)
+        return execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}/uplinks",
+            params={"sort": sort}
+        )
+
+    @staticmethod
+    def get_gateway_uplink_details(central_conn, serial_number, link_tag):
+        """Get details for a specific gateway uplink."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_required_value("link_tag", link_tag)
+        return execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}/uplinks/{link_tag}"
+        )
+
+    @staticmethod
+    def get_all_gateway_dhcp_pools(
         central_conn,
         serial_number,
+        sort=None,
+    ):
+        """Retrieve all gateway DHCP pools, handling pagination."""
+        return get_all_pages(
+            MonitoringGateways.get_gateway_dhcp_pools,
+            limit=GATEWAY_DHCP_LIMIT,
+            central_conn=central_conn,
+            serial_number=serial_number,
+            sort=sort,
+        )
+
+    @staticmethod
+    def get_gateway_dhcp_pools(
+        central_conn,
+        serial_number,
+        sort=None,
+        limit=GATEWAY_DHCP_LIMIT,
+        next_page=1,
+    ):
+        """Retrieve a single page of gateway DHCP pools."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_limit_and_next(limit, next_page, GATEWAY_DHCP_LIMIT)
+        validate_query_length("sort", sort)
+
+        return execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}/dhcp-pools",
+            params={
+                "sort": sort,
+                "limit": limit,
+                "next": next_page,
+            }
+        )
+
+    @staticmethod
+    def get_all_gateway_dhcp_clients(
+        central_conn,
+        serial_number,
+        filter_str=None,
+        sort=None,
+    ):
+        """Retrieve all gateway DHCP clients, handling pagination."""
+        return get_all_pages(
+            MonitoringGateways.get_gateway_dhcp_clients,
+            limit=GATEWAY_DHCP_LIMIT,
+            central_conn=central_conn,
+            serial_number=serial_number,
+            filter_str=filter_str,
+            sort=sort,
+        )
+
+    @staticmethod
+    def get_gateway_dhcp_clients(
+        central_conn,
+        serial_number,
+        filter_str=None,
+        sort=None,
+        limit=GATEWAY_DHCP_LIMIT,
+        next_page=1,
+    ):
+        """Retrieve a single page of gateway DHCP clients."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_limit_and_next(limit, next_page, GATEWAY_DHCP_LIMIT)
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("sort", sort)
+
+        return execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}/dhcp-clients",
+            params={
+                "filter": filter_str,
+                "sort": sort,
+                "limit": limit,
+                "next": next_page,
+            }
+        )
+
+    @staticmethod
+    def get_gateway_trends(
+        central_conn,
+        serial_number,
+        metric,
         start_time=None,
         end_time=None,
         duration=None,
+        site_id=None,
         return_raw_response=False,
     ):
-        """
-        Collect multiple statistics (like CPU, memory, WAN availability) for a gateway for the specified time range. Default is to return sorted trend statistics for last 3 hours.
-
-        Args:
-            central_conn (NewCentralBase): Central connection object.
-            serial_number (str): Serial number of the gateway.
-            start_time (int, optional): Start time (epoch seconds) for range queries.
-            end_time (int, optional): End time (epoch seconds) for range queries.
-            duration (str|int, optional): Duration string (e.g. '5m') or seconds for relative queries.
-            return_raw_response (bool, optional): If True, return raw per-metric API responses.
-
-        Returns:
-            (list|dict): If return_raw_response is True returns raw list of responses; otherwise returns merged, sorted trend statistics for the gateway.
-
-        Raises:
-            ParameterError: If central_conn is None or serial_number is missing/invalid.
-            RuntimeError: If any of the parallel metric requests fail.
-        """
+        """Retrieve trend data for a gateway metric."""
         validate_central_conn_and_serial(central_conn, serial_number)
-
-        # dispatch the three metric calls in parallel; helper methods handle timestamp logic
-        funcs = [
-            MonitoringGateways.get_gateway_cpu_utilization,
-            MonitoringGateways.get_gateway_memory_utilization,
-            MonitoringGateways.get_gateway_wan_availability,
-        ]
-
-        raw_results = []
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            future_map = {
-                executor.submit(
-                    func,
-                    central_conn,
-                    serial_number,
-                    start_time,
-                    end_time,
-                    duration,
-                ): func
-                for func in funcs
-            }
-            for fut in as_completed(future_map):
-                func = future_map[fut]
-                try:
-                    resp = fut.result()
-                    if isinstance(resp, list) is True and len(resp) == 1:
-                        resp = resp[0]
-                    raw_results.append(resp)
-                except Exception as e:
-                    # propagate the error for the caller to handle, but include which call failed
-                    raise RuntimeError(
-                        f"{func.__name__} metrics request failed: {e}"
-                    ) from e
-
-        if return_raw_response:
-            return raw_results
-
-        data = {}
-        for resp in raw_results:
-            if not isinstance(resp, dict):
-                continue
-            data = clean_raw_trend_data(resp, data=data)
-        data = merged_dict_to_sorted_list(data)
-        return data
-
-    def get_latest_gateway_stats(
-        central_conn,
-        serial_number,
-    ):
-        """
-        Get the latest gateway statistics (like CPU, memory, WAN availability)
-
-        Args:
-            central_conn (NewCentralBase): Central connection object.
-            serial_number (str): Serial number of the gateway.
-
-        Returns:
-            (dict): Latest statistics for the gateway, or empty dict if none exist.
-
-        Raises:
-            ParameterError: If central_conn is None or serial_number is missing/invalid.
-        """
-        validate_central_conn_and_serial(central_conn, serial_number)
-        stats = MonitoringGateways.get_gateway_stats(
-            central_conn, serial_number, duration="5m"
+        metric = normalize_metric(metric, GATEWAY_TREND_METRICS)
+        params = build_trend_params(
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
         )
-        if stats and isinstance(stats, list) and len(stats) > 0:
-            return stats[-1]
-        else:
-            return {}
+        response = execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}/{GATEWAY_TREND_METRICS[metric]}",
+            params=params,
+        )
+        return normalize_trend_response(response, return_raw_response)
 
     @staticmethod
     def get_gateway_cpu_utilization(
@@ -302,42 +388,19 @@ class MonitoringGateways:
         start_time=None,
         end_time=None,
         duration=None,
+        site_id=None,
+        return_raw_response=False,
     ):
-        """
-        Retrieve CPU utilization trends for a gateway.
-
-        This method makes an API call to the following endpoint - `GET network-monitoring/v1alpha1/gateways/{serial_number}/cpu-utilization-trends`
-
-        Args:
-            central_conn (NewCentralBase): Central connection object.
-            serial_number (str): Serial number of the gateway.
-            start_time (int, optional): Start time (epoch seconds) for range queries.
-            end_time (int, optional): End time (epoch seconds) for range queries.
-            duration (str|int, optional): Duration string or seconds for relative queries.
-
-        Returns:
-            (dict|list): API response for cpu-utilization-trends.
-
-        Raises:
-            ParameterError: If central_conn is None or serial_number is missing/invalid.
-        """
-        validate_central_conn_and_serial(central_conn, serial_number)
-        if start_time is None and end_time is None and duration is None:
-            return execute_get(
-                central_conn,
-                endpoint=f"{MONITOR_TYPE}/{serial_number}/cpu-utilization-trends",
-                version=API_VERSION,
-            )
-
-        return execute_get(
+        """Retrieve CPU utilization trends for a gateway."""
+        return MonitoringGateways.get_gateway_trends(
             central_conn,
-            endpoint=f"{MONITOR_TYPE}/{serial_number}/cpu-utilization-trends",
-            params={
-                "filter": generate_timestamp_str(
-                    start_time=start_time, end_time=end_time, duration=duration
-                )
-            },
-            version=API_VERSION,
+            serial_number,
+            metric="cpu-utilization",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
         )
 
     @staticmethod
@@ -347,42 +410,19 @@ class MonitoringGateways:
         start_time=None,
         end_time=None,
         duration=None,
+        site_id=None,
+        return_raw_response=False,
     ):
-        """
-        Retrieve memory utilization trends for a gateway.
-
-        This method makes an API call to the following endpoint - `GET network-monitoring/v1alpha1/gateways/{serial_number}/memory-utilization-trends`
-
-        Args:
-            central_conn (NewCentralBase): Central connection object.
-            serial_number (str): Serial number of the gateway.
-            start_time (int, optional): Start time (epoch seconds) for range queries.
-            end_time (int, optional): End time (epoch seconds) for range queries.
-            duration (str|int, optional): Duration string or seconds for relative queries.
-
-        Returns:
-            (dict|list): API response for memory-utilization-trends.
-
-        Raises:
-            ParameterError: If central_conn is None or serial_number is missing/invalid.
-        """
-        validate_central_conn_and_serial(central_conn, serial_number)
-        if start_time is None and end_time is None and duration is None:
-            return execute_get(
-                central_conn,
-                endpoint=f"{MONITOR_TYPE}/{serial_number}/memory-utilization-trends",
-                version=API_VERSION,
-            )
-
-        return execute_get(
+        """Retrieve memory utilization trends for a gateway."""
+        return MonitoringGateways.get_gateway_trends(
             central_conn,
-            endpoint=f"{MONITOR_TYPE}/{serial_number}/memory-utilization-trends",
-            params={
-                "filter": generate_timestamp_str(
-                    start_time=start_time, end_time=end_time, duration=duration
-                )
-            },
-            version=API_VERSION,
+            serial_number,
+            metric="memory-utilization",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
         )
 
     @staticmethod
@@ -392,63 +432,707 @@ class MonitoringGateways:
         start_time=None,
         end_time=None,
         duration=None,
+        site_id=None,
+        return_raw_response=False,
     ):
-        """
-        Retrieve WAN availability trends for a gateway.
-
-        This method makes an API call to the following endpoint - `GET network-monitoring/v1alpha1/gateways/{serial_number}/wan-availability-trends`
-
-        Args:
-            central_conn (NewCentralBase): Central connection object.
-            serial_number (str): Serial number of the gateway.
-            start_time (int, optional): Start time (epoch seconds) for range queries.
-            end_time (int, optional): End time (epoch seconds) for range queries.
-            duration (str|int, optional): Duration string or seconds for relative queries.
-
-        Returns:
-            (dict|list): API response for wan-availability-trends.
-
-        Raises:
-            ParameterError: If central_conn is None or serial_number is missing/invalid.
-        """
-        validate_central_conn_and_serial(central_conn, serial_number)
-        if start_time is None and end_time is None and duration is None:
-            return execute_get(
-                central_conn,
-                endpoint=f"{MONITOR_TYPE}/{serial_number}/wan-availability-trends",
-                version=API_VERSION,
-            )
-
-        return execute_get(
+        """Retrieve WAN availability trends for a gateway."""
+        return MonitoringGateways.get_gateway_trends(
             central_conn,
-            endpoint=f"{MONITOR_TYPE}/{serial_number}/wan-availability-trends",
-            params={
-                "filter": generate_timestamp_str(
-                    start_time=start_time, end_time=end_time, duration=duration
-                )
-            },
-            version=API_VERSION,
+            serial_number,
+            metric="wan-availability",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
         )
 
     @staticmethod
-    def get_tunnel_health_summary(central_conn, serial_number):
-        """
-        Retrieve LAN tunnels health summary for a gateway.
+    def get_gateway_vpn_availability(
+        central_conn,
+        serial_number,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        """Retrieve VPN availability trends for a gateway."""
+        return MonitoringGateways.get_gateway_trends(
+            central_conn,
+            serial_number,
+            metric="vpn-availability",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
 
-        This method makes an API call to the following endpoint - `GET network-monitoring/v1alpha1/gateways/{serial_number}/lan-tunnels-health-summary`
+    @staticmethod
+    def get_gateway_temperature_trends(
+        central_conn,
+        serial_number,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        """Retrieve hardware temperature trends for a gateway."""
+        return MonitoringGateways.get_gateway_trends(
+            central_conn,
+            serial_number,
+            metric="hardware-temperature",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
 
-        Args:
-            central_conn (NewCentralBase): Central connection object.
-            serial_number (str): Serial number of the gateway.
-
-        Returns:
-            (dict): API response for lan-tunnels-health-summary.
-
-        Raises:
-            ParameterError: If central_conn is None or serial_number is missing/invalid.
-        """
+    @staticmethod
+    def get_gateway_stats(
+        central_conn,
+        serial_number,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        """Collect CPU, memory, and WAN availability trends for a gateway."""
         validate_central_conn_and_serial(central_conn, serial_number)
-        path = f"{MONITOR_TYPE}/{serial_number}/current-routes"
-        return execute_get(central_conn, endpoint=path, version=API_VERSION)
 
+        raw_results = []
+        for metric in (
+            "cpu-utilization",
+            "memory-utilization",
+            "wan-availability",
+        ):
+            raw_results.append(
+                MonitoringGateways.get_gateway_trends(
+                    central_conn,
+                    serial_number,
+                    metric=metric,
+                    start_time=start_time,
+                    end_time=end_time,
+                    duration=duration,
+                    site_id=site_id,
+                    return_raw_response=True,
+                )
+            )
 
+        if return_raw_response:
+            return raw_results
+
+        data = {}
+        for response in raw_results:
+            if isinstance(response, dict):
+                data = clean_raw_trend_data(response, data=data)
+        return merged_dict_to_sorted_list(data)
+
+    @staticmethod
+    def get_latest_gateway_stats(central_conn, serial_number):
+        """Get the latest gateway statistics."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        stats = MonitoringGateways.get_gateway_stats(
+            central_conn,
+            serial_number,
+            duration="5m",
+        )
+        return stats[-1] if isinstance(stats, list) and stats else {}
+
+    @staticmethod
+    def get_gateway_port_trends(
+        central_conn,
+        serial_number,
+        port_number,
+        metric,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        """Retrieve trend data for a gateway port metric."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_required_value("port_number", port_number)
+        metric = normalize_metric(metric, PORT_TREND_METRICS)
+        params = build_trend_params(
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+        )
+        response = execute_get(
+            central_conn,
+            endpoint=(
+                f"{MONITOR_TYPE}/{serial_number}/ports/{port_number}/"
+                f"{PORT_TREND_METRICS[metric]}"
+            ),
+            params=params,
+        )
+        return normalize_trend_response(response, return_raw_response)
+
+    @staticmethod
+    def get_gateway_port_throughput_trends(
+        central_conn,
+        serial_number,
+        port_number,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        return MonitoringGateways.get_gateway_port_trends(
+            central_conn,
+            serial_number,
+            port_number,
+            metric="throughput",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
+
+    @staticmethod
+    def get_gateway_port_frames_trends(
+        central_conn,
+        serial_number,
+        port_number,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        return MonitoringGateways.get_gateway_port_trends(
+            central_conn,
+            serial_number,
+            port_number,
+            metric="frames",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
+
+    @staticmethod
+    def get_gateway_port_frames_errors_trends(
+        central_conn,
+        serial_number,
+        port_number,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        return MonitoringGateways.get_gateway_port_trends(
+            central_conn,
+            serial_number,
+            port_number,
+            metric="frames-errors",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
+
+    @staticmethod
+    def get_gateway_port_frames_packets_trends(
+        central_conn,
+        serial_number,
+        port_number,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        return MonitoringGateways.get_gateway_port_trends(
+            central_conn,
+            serial_number,
+            port_number,
+            metric="frames-packets",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
+
+    @staticmethod
+    def get_gateway_tunnel_trends(
+        central_conn,
+        serial_number,
+        tunnel_name,
+        metric,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        """Retrieve trend data for a gateway tunnel metric."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_required_value("tunnel_name", tunnel_name)
+        metric = normalize_metric(metric, TUNNEL_TREND_METRICS)
+        params = build_trend_params(
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+        )
+        response = execute_get(
+            central_conn,
+            endpoint=(
+                f"{MONITOR_TYPE}/{serial_number}/tunnels/{tunnel_name}/"
+                f"{TUNNEL_TREND_METRICS[metric]}"
+            ),
+            params=params
+        )
+        return normalize_trend_response(response, return_raw_response)
+
+    @staticmethod
+    def get_gateway_tunnel_throughput_trends(
+        central_conn,
+        serial_number,
+        tunnel_name,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        return MonitoringGateways.get_gateway_tunnel_trends(
+            central_conn,
+            serial_number,
+            tunnel_name,
+            metric="throughput",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
+
+    @staticmethod
+    def get_gateway_tunnel_status_trends(
+        central_conn,
+        serial_number,
+        tunnel_name,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        return MonitoringGateways.get_gateway_tunnel_trends(
+            central_conn,
+            serial_number,
+            tunnel_name,
+            metric="status",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
+
+    @staticmethod
+    def get_gateway_tunnel_dropped_packets_trends(
+        central_conn,
+        serial_number,
+        tunnel_name,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        return MonitoringGateways.get_gateway_tunnel_trends(
+            central_conn,
+            serial_number,
+            tunnel_name,
+            metric="dropped-packets",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
+
+    @staticmethod
+    def get_gateway_uplink_trends(
+        central_conn,
+        serial_number,
+        link_tag,
+        metric,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        """Retrieve trend data for a gateway uplink metric."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_required_value("link_tag", link_tag)
+        metric = normalize_metric(metric, UPLINK_TREND_METRICS)
+        params = build_trend_params(
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+        )
+        response = execute_get(
+            central_conn,
+            endpoint=(
+                f"{MONITOR_TYPE}/{serial_number}/uplinks/{link_tag}/"
+                f"{UPLINK_TREND_METRICS[metric]}"
+            ),
+            params=params
+        )
+        return normalize_trend_response(response, return_raw_response)
+
+    @staticmethod
+    def get_gateway_uplink_throughput_trends(
+        central_conn,
+        serial_number,
+        link_tag,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        return MonitoringGateways.get_gateway_uplink_trends(
+            central_conn,
+            serial_number,
+            link_tag,
+            metric="throughput",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
+
+    @staticmethod
+    def get_gateway_uplink_wan_compression_trends(
+        central_conn,
+        serial_number,
+        link_tag,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        return MonitoringGateways.get_gateway_uplink_trends(
+            central_conn,
+            serial_number,
+            link_tag,
+            metric="wan-compression",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
+
+    @staticmethod
+    def get_gateway_uplink_wan_availability_trends(
+        central_conn,
+        serial_number,
+        link_tag,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        return MonitoringGateways.get_gateway_uplink_trends(
+            central_conn,
+            serial_number,
+            link_tag,
+            metric="wan-availability",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
+
+    @staticmethod
+    def get_gateway_uplink_vpn_availability_trends(
+        central_conn,
+        serial_number,
+        vlan_id,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        """Retrieve uplink VPN availability trends using VLAN identifier."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_required_value("vlan_id", vlan_id)
+        params = build_trend_params(
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+        )
+        response = execute_get(
+            central_conn,
+            endpoint=(
+                f"{MONITOR_TYPE}/{serial_number}/uplinks/{vlan_id}/"
+                "vpn-availability-trends"
+            ),
+            params=params
+        )
+        return normalize_trend_response(response, return_raw_response)
+
+    @staticmethod
+    def get_gateway_uplink_probes(
+        central_conn,
+        serial_number,
+        link_tag,
+        filter_str=None,
+        site_id=None,
+    ):
+        """Retrieve probe definitions for a gateway uplink."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_required_value("link_tag", link_tag)
+        validate_query_length("filter_str", filter_str)
+        validate_site_id(site_id)
+        return execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}/uplinks/{link_tag}/probes",
+            params={
+                "filter": filter_str,
+                "site-id": site_id,
+            }
+        )
+
+    @staticmethod
+    def get_gateway_uplink_probe_performance_trends(
+        central_conn,
+        serial_number,
+        link_tag,
+        probe,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        """Retrieve performance trends for a gateway uplink probe."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_required_value("link_tag", link_tag)
+        validate_required_value("probe", probe)
+        params = build_trend_params(
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+        )
+        response = execute_get(
+            central_conn,
+            endpoint=(
+                f"{MONITOR_TYPE}/{serial_number}/uplinks/{link_tag}/probes/{probe}/"
+                "performance-trends"
+            ),
+            params=params
+        )
+        return normalize_trend_response(response, return_raw_response)
+
+    @staticmethod
+    def get_gateway_tunnel_health_summary(
+        central_conn,
+        serial_number,
+        tunnel_type="lan",
+    ):
+        """Retrieve tunnel health summary for a gateway."""
+        validate_central_conn_and_serial(central_conn, serial_number)
+        normalized_tunnel_type = str(tunnel_type).lower()
+        tunnel_paths = {
+            "lan": "lan-tunnels-health-summary",
+            "wan": "wan-tunnels-health-summary",
+        }
+        if normalized_tunnel_type not in tunnel_paths:
+            raise ParameterError("tunnel_type must be either 'lan' or 'wan'")
+        return execute_get(
+            central_conn,
+            endpoint=(
+                f"{MONITOR_TYPE}/{serial_number}/"
+                f"{tunnel_paths[normalized_tunnel_type]}"
+            )
+        )
+
+    @staticmethod
+    def get_all_cluster_members(
+        central_conn,
+        cluster_name,
+        filter_str=None,
+        sort=None,
+    ):
+        """Retrieve all cluster members, handling pagination."""
+        validate_required_value("cluster_name", cluster_name)
+        return get_all_pages(
+            MonitoringGateways.get_cluster_members,
+            limit=CLUSTER_LIMIT,
+            central_conn=central_conn,
+            cluster_name=cluster_name,
+            filter_str=filter_str,
+            sort=sort,
+        )
+
+    @staticmethod
+    def get_cluster_members(
+        central_conn,
+        cluster_name,
+        filter_str=None,
+        sort=None,
+        limit=CLUSTER_LIMIT,
+        next_page=1,
+    ):
+        """Retrieve a single page of cluster members."""
+        validate_required_value("cluster_name", cluster_name)
+        validate_limit_and_next(limit, next_page, CLUSTER_LIMIT)
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("sort", sort)
+        return execute_get(
+            central_conn,
+            endpoint=f"{CLUSTER_MONITOR_TYPE}/{cluster_name}/members",
+            params={
+                "filter": filter_str,
+                "sort": sort,
+                "limit": limit,
+                "next": next_page,
+            }
+        )
+
+    @staticmethod
+    def get_all_cluster_tunnels(
+        central_conn,
+        cluster_name,
+        filter_str=None,
+        sort=None,
+    ):
+        """Retrieve all cluster tunnels, handling pagination."""
+        validate_required_value("cluster_name", cluster_name)
+        return get_all_pages(
+            MonitoringGateways.get_cluster_tunnels,
+            limit=CLUSTER_LIMIT,
+            central_conn=central_conn,
+            cluster_name=cluster_name,
+            filter_str=filter_str,
+            sort=sort,
+        )
+
+    @staticmethod
+    def get_cluster_tunnels(
+        central_conn,
+        cluster_name,
+        filter_str=None,
+        sort=None,
+        limit=CLUSTER_LIMIT,
+        next_page=1,
+    ):
+        """Retrieve a single page of cluster tunnels."""
+        validate_required_value("cluster_name", cluster_name)
+        validate_limit_and_next(limit, next_page, CLUSTER_LIMIT)
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("sort", sort)
+        return execute_get(
+            central_conn,
+            endpoint=f"{CLUSTER_MONITOR_TYPE}/{cluster_name}/tunnels",
+            params={
+                "filter": filter_str,
+                "sort": sort,
+                "limit": limit,
+                "next": next_page,
+            }
+        )
+
+    @staticmethod
+    def get_cluster_vlan_mismatch(
+        central_conn,
+        cluster_name,
+        filter_str=None,
+    ):
+        """Retrieve VLAN mismatch details for a cluster."""
+        validate_required_value("cluster_name", cluster_name)
+        validate_query_length("filter_str", filter_str)
+        return execute_get(
+            central_conn,
+            endpoint=f"{CLUSTER_MONITOR_TYPE}/{cluster_name}/vlan-mismatch",
+            params={"filter": filter_str}
+        )
+
+    @staticmethod
+    def get_cluster_connectivity_graph(central_conn, cluster_name):
+        """Retrieve connectivity graph details for a cluster."""
+        validate_required_value("cluster_name", cluster_name)
+        return execute_get(
+            central_conn,
+            endpoint=f"{CLUSTER_MONITOR_TYPE}/{cluster_name}/connectivity-graph"
+        )
+
+    @staticmethod
+    def get_cluster_tunnel_summary(
+        central_conn,
+        cluster_name,
+        summary_type="health",
+    ):
+        """Retrieve cluster tunnel health or status summary."""
+        validate_required_value("cluster_name", cluster_name)
+        normalized_summary_type = str(summary_type).lower()
+        summary_paths = {
+            "health": "tunnels-health-summary",
+            "status": "tunnels-status-summary",
+        }
+        if normalized_summary_type not in summary_paths:
+            raise ParameterError("summary_type must be either 'health' or 'status'")
+        return execute_get(
+            central_conn,
+            endpoint=(
+                f"{CLUSTER_MONITOR_TYPE}/{cluster_name}/"
+                f"{summary_paths[normalized_summary_type]}"
+            )
+        )
+
+    @staticmethod
+    def get_cluster_capacity_trends(
+        central_conn,
+        cluster_name,
+        serial_number=None,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        return_raw_response=False,
+    ):
+        """Retrieve cluster capacity trends."""
+        validate_required_value("cluster_name", cluster_name)
+        params = build_trend_params(
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+        )
+        endpoint = f"{CLUSTER_MONITOR_TYPE}/{cluster_name}/capacity-trends"
+        if serial_number is not None:
+            validate_required_value("serial_number", serial_number)
+            endpoint = f"{endpoint}/{serial_number}"
+        response = execute_get(
+            central_conn,
+            endpoint=endpoint,
+            params=params
+        )
+        return normalize_trend_response(response, return_raw_response)

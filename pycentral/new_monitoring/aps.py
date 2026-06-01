@@ -1,23 +1,58 @@
-from ..utils.monitoring_utils import (
-    execute_get,
-    generate_timestamp_str,
-    clean_raw_trend_data,
-    merged_dict_to_sorted_list,
-    validate_device_serial,
-)
 from ..exceptions import ParameterError
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from ..utils.monitoring_utils import (
+    build_trend_params,
+    execute_get,
+    get_all_pages,
+    normalize_metric,
+    normalize_trend_response,
+    validate_central_conn_and_serial,
+    validate_limit_and_next,
+    validate_query_length,
+    validate_required_value,
+    validate_site_id,
+)
+from .constants import AP_LIMIT, BSSID_LIMIT, RADIO_LIMIT, SWARM_LIMIT, TUNNEL_LIMIT
 
-AP_LIMIT = 100
-WLAN_LIMIT = 100
 MONITOR_TYPE = "aps"
+
+AP_TREND_METRICS = {
+    "throughput": "throughput-trends",
+    "cpu-utilization": "cpu-utilization-trends",
+    "memory-utilization": "memory-utilization-trends",
+    "power-consumption": "power-consumption-trends",
+}
+RADIO_TREND_METRICS = {
+    "throughput": "throughput-trends",
+    "channel-utilization": "channel-utilization-trends",
+    "channel-quality": "channel-quality-trends",
+    "noise-floor": "noise-floor-trends",
+    "frames": "frames-trends",
+}
+PORT_TREND_METRICS = {
+    "throughput": "throughput-trends",
+    "frames": "frames-trends",
+    "crc": "crc-trends",
+    "collisions": "collisions-trends",
+}
+TUNNEL_TREND_METRICS = {
+    "throughput": "throughput-trends",
+    "packet-loss": "packet-loss-trends",
+    "mos": "mos-trends",
+    "jitter": "jitter-trends",
+    "latency": "latency-trends",
+}
+AP_INTERFACE_TYPES = {"WIRED", "WIRELESS", "LTE"}
 
 
 class MonitoringAPs:
+
     @staticmethod
     def get_all_aps(central_conn, filter_str=None, sort=None):
         """
         Retrieve all access points (APs), handling pagination.
+
+        This method retrieves all results by repeatedly calling the following endpoint -
+        `GET network-monitoring/v1/aps`
 
         Args:
             central_conn (NewCentralBase): Central connection object.
@@ -27,31 +62,13 @@ class MonitoringAPs:
         Returns:
             (list[dict]): List of AP items.
         """
-        aps = []
-        total_aps = None
-        next_page = 1
-        while True:
-            resp = MonitoringAPs.get_aps(
-                central_conn,
-                filter_str=filter_str,
-                sort=sort,
-                limit=AP_LIMIT,
-                next_page=next_page,
-            )
-            if total_aps is None:
-                total_aps = resp.get("total", 0)
-
-            aps.extend(resp["items"])
-
-            if len(aps) == total_aps:
-                break
-
-            next_page = resp.get("next")
-            if not next_page:
-                break
-
-            next_page = int(next_page)
-        return aps
+        return get_all_pages(
+            MonitoringAPs.get_aps,
+            limit=AP_LIMIT,
+            central_conn=central_conn,
+            filter_str=filter_str,
+            sort=sort,
+        )
 
     @staticmethod
     def get_aps(
@@ -66,7 +83,7 @@ class MonitoringAPs:
             central_conn (NewCentralBase): Central connection object.
             filter_str (str, optional): Optional filter expression (supported fields documented in API Reference Guide).
             sort (str, optional): Optional sort parameter (supported fields documented in API Reference Guide).
-            limit (int, optional): Number of entries to return (default is 100).
+            limit (int, optional): Number of entries to return (default is 1000).
             next_page (int, optional): Pagination cursor/index for next page (default is 1).
 
         Returns:
@@ -75,18 +92,20 @@ class MonitoringAPs:
         Raises:
             ParameterError: If limit or next_page values are invalid.
         """
-        path = MONITOR_TYPE
-        if limit > AP_LIMIT:
-            raise ParameterError(f"limit cannot exceed {AP_LIMIT}")
-        if next_page < 1:
-            raise ParameterError("next_page must be 1 or greater")
-        params = {
-            "filter": filter_str,
-            "sort": sort,
-            "limit": limit,
-            "next": next_page,
-        }
-        return execute_get(central_conn, endpoint=path, params=params)
+        validate_limit_and_next(limit, next_page, AP_LIMIT)
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("sort", sort)
+
+        return execute_get(
+            central_conn,
+            endpoint=MONITOR_TYPE,
+            params={
+                "filter": filter_str,
+                "sort": sort,
+                "limit": limit,
+                "next": next_page,
+            },
+        )
 
     @staticmethod
     def get_ap_details(central_conn, serial_number):
@@ -105,305 +124,619 @@ class MonitoringAPs:
         Raises:
             ParameterError: If serial_number is missing/invalid.
         """
-        validate_device_serial(serial_number=serial_number)
-        path = f"{MONITOR_TYPE}/{serial_number}"
-        return execute_get(central_conn, endpoint=path)
+        validate_central_conn_and_serial(central_conn, serial_number)
+        return execute_get(central_conn, endpoint=f"{MONITOR_TYPE}/{serial_number}")
 
     @staticmethod
-    def get_ap_stats(
+    def _execute_trend_request(
         central_conn,
         serial_number,
+        metric,
+        metric_map,
+        resource_path=None,
         start_time=None,
         end_time=None,
         duration=None,
+        site_id=None,
+        extra_params=None,
+        return_raw_response=False,
+    ):
+        validate_central_conn_and_serial(central_conn, serial_number)
+        metric = normalize_metric(metric, metric_map)
+        params = build_trend_params(
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            extra_params=extra_params,
+        )
+        path = f"{MONITOR_TYPE}/{serial_number}"
+        if resource_path:
+            path = f"{path}/{resource_path}"
+        path = f"{path}/{metric_map[metric]}"
+        response = execute_get(central_conn, endpoint=path, params=params)
+        return normalize_trend_response(response, return_raw_response)
+
+    @staticmethod
+    def get_ap_trends(
+        central_conn,
+        serial_number,
+        metric,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        interface_type="WIRELESS",
         return_raw_response=False,
     ):
         """
-        Collect multiple statistics (CPU, memory, power consumption) for an AP for the specified time range. Default is to return sorted trend statistics for last 3 hours.
+        Retrieve trend data for an AP metric.
+
+        This method makes an API call to one of the following endpoints based on `metric` -
+        `GET network-monitoring/v1/aps/{serial_number}/throughput-trends`
+        `GET network-monitoring/v1/aps/{serial_number}/cpu-utilization-trends`
+        `GET network-monitoring/v1/aps/{serial_number}/memory-utilization-trends`
+        `GET network-monitoring/v1/aps/{serial_number}/power-consumption-trends`
 
         Args:
             central_conn (NewCentralBase): Central connection object.
             serial_number (str): Serial number of the AP.
-            start_time (int, optional): Start time (epoch seconds) for range queries.
-            end_time (int, optional): End time (epoch seconds) for range queries.
-            duration (str|int, optional): Duration string (e.g. '5m') or seconds for relative queries.
-            return_raw_response (bool, optional): If True, return raw per-metric responses.
-
-        Returns:
-            (list|dict): If return_raw_response is True returns raw list of responses; otherwise returns merged, sorted trend statistics for the AP.
-
-        Raises:
-            ParameterError: If serial_number is missing/invalid.
-            RuntimeError: If any of the parallel metric requests fail.
-        """
-        validate_device_serial(serial_number)
-
-        # dispatch the three metric calls in parallel; helper methods handle timestamp logic
-        funcs = [
-            MonitoringAPs.get_ap_cpu_utilization,
-            MonitoringAPs.get_ap_memory_utilization,
-            MonitoringAPs.get_ap_poe_utilization,
-        ]
-
-        raw_results = []
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            future_map = {
-                executor.submit(
-                    func,
-                    central_conn,
-                    serial_number,
-                    start_time,
-                    end_time,
-                    duration,
-                ): func
-                for func in funcs
-            }
-            for fut in as_completed(future_map):
-                func = future_map[fut]
-                try:
-                    resp = fut.result()
-                    raw_results.append(resp)
-                except Exception as e:
-                    # propagate the error for the caller to handle, but include which call failed
-                    raise RuntimeError(
-                        f"{func.__name__} metrics request failed: {e}"
-                    ) from e
-
-        if return_raw_response:
-            return raw_results
-
-        data = {}
-        for resp in raw_results:
-            if not isinstance(resp, dict):
-                continue
-            data = clean_raw_trend_data(resp, data=data)
-        data = merged_dict_to_sorted_list(data)
-        return data
-
-    @staticmethod
-    def get_latest_ap_stats(
-        central_conn,
-        serial_number,
-    ):
-        """
-        Get the latest AP statistics (like CPU, memory, power consumption).
-
-        Args:
-            central_conn (NewCentralBase): Central connection object.
-            serial_number (str): Serial number of the AP.
-
-        Returns:
-            (dict): Latest statistics for the AP, or empty dict if none exist.
-
-        Raises:
-            ParameterError: If serial_number is missing/invalid.
-        """
-        validate_device_serial(serial_number)
-        stats = MonitoringAPs.get_ap_stats(
-            central_conn, serial_number, duration="5m"
-        )
-        if stats and isinstance(stats, list) and len(stats) > 0:
-            return stats[-1]
-        else:
-            return {}
-
-    @staticmethod
-    def get_ap_cpu_utilization(
-        central_conn,
-        serial_number,
-        start_time=None,
-        end_time=None,
-        duration=None,
-    ):
-        """
-        Retrieve CPU utilization trends for an AP.
-
-        This method makes an API call to the following endpoint - `GET network-monitoring/v1/aps/{serial_number}/cpu-utilization-trends`
-
-        Args:
-            central_conn (NewCentralBase): Central connection object.
-            serial_number (str): Serial number of the AP.
+            metric (str): Trend metric to retrieve. Supported values are `throughput`, `cpu-utilization`, `memory-utilization`, and `power-consumption`.
             start_time (int, optional): Start time (epoch seconds) for range queries.
             end_time (int, optional): End time (epoch seconds) for range queries.
             duration (str|int, optional): Duration string or seconds for relative queries.
+            site_id (str, optional): Site identifier to scope the trend request.
+            interface_type (str, optional): Interface type for throughput requests. Supported values are `WIRED`, `WIRELESS`, and `LTE`.
+            return_raw_response (bool, optional): If True, return the raw API payload. Otherwise return normalized trend samples.
 
         Returns:
-            (dict|list): API response for cpu-utilization-trends.
+            (dict|list): If return_raw_response is True returns the raw API response; otherwise returns normalized trend samples.
 
         Raises:
-            ParameterError: If serial_number is missing/invalid.
+            ParameterError: If serial_number, metric, or interface_type is invalid.
         """
-        validate_device_serial(serial_number)
-        path = f"{MONITOR_TYPE}/{serial_number}/cpu-utilization-trends"
-        if start_time is None and end_time is None and duration is None:
-            return execute_get(central_conn, endpoint=path)
+        extra_params = None
+        normalized_metric = normalize_metric(metric, AP_TREND_METRICS)
+        if normalized_metric == "throughput":
+            normalized_interface_type = str(interface_type).upper()
+            if normalized_interface_type not in AP_INTERFACE_TYPES:
+                supported = ", ".join(sorted(AP_INTERFACE_TYPES))
+                raise ParameterError(
+                    "interface_type must be one of "
+                    f"{supported} for AP throughput trends"
+                )
+            extra_params = {"interface-type": normalized_interface_type}
+
+        return MonitoringAPs._execute_trend_request(
+            central_conn=central_conn,
+            serial_number=serial_number,
+            metric=normalized_metric,
+            metric_map=AP_TREND_METRICS,
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            extra_params=extra_params,
+            return_raw_response=return_raw_response,
+        )
+
+    @staticmethod
+    def get_all_radios(central_conn, filter_str=None, sort=None):
+        """
+        Retrieve all fleet radios, handling pagination.
+
+        This method retrieves all results by repeatedly calling the following endpoint -
+        `GET network-monitoring/v1/radios`
+
+        Args:
+            central_conn (NewCentralBase): Central connection object.
+            filter_str (str, optional): Optional filter expression for the radio list.
+            sort (str, optional): Optional sort expression for the radio list.
+
+        Returns:
+            (list[dict]): List of radio items.
+        """
+        return get_all_pages(
+            MonitoringAPs.get_radios,
+            limit=RADIO_LIMIT,
+            central_conn=central_conn,
+            filter_str=filter_str,
+            sort=sort,
+        )
+
+    @staticmethod
+    def get_radios(
+        central_conn, filter_str=None, sort=None, limit=RADIO_LIMIT, next_page=1
+    ):
+        """
+        Retrieve a single page of fleet radios.
+
+        This method makes an API call to the following endpoint -
+        `GET network-monitoring/v1/radios`
+
+        Args:
+            central_conn (NewCentralBase): Central connection object.
+            filter_str (str, optional): Optional filter expression for the radio list.
+            sort (str, optional): Optional sort expression for the radio list.
+            limit (int, optional): Number of entries to return.
+            next_page (int, optional): Pagination cursor/index for the next page.
+
+        Returns:
+            (dict): API response for the radios endpoint.
+
+        Raises:
+            ParameterError: If limit, next_page, filter_str, or sort is invalid.
+        """
+        validate_limit_and_next(limit, next_page, RADIO_LIMIT)
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("sort", sort)
 
         return execute_get(
             central_conn,
-            endpoint=path,
+            endpoint="radios",
             params={
-                "filter": generate_timestamp_str(
-                    start_time=start_time, end_time=end_time, duration=duration
-                )
+                "filter": filter_str,
+                "sort": sort,
+                "limit": limit,
+                "next": next_page,
             },
         )
 
     @staticmethod
-    def get_ap_memory_utilization(
-        central_conn,
-        serial_number,
-        start_time=None,
-        end_time=None,
-        duration=None,
-    ):
+    def get_all_bssids(central_conn, filter_str=None, sort=None):
         """
-        Retrieve memory utilization trends for an AP.
+        Retrieve all fleet BSSIDs, handling pagination.
 
-        This method makes an API call to the following endpoint -  `GET network-monitoring/v1/aps/{serial_number}/memory-utilization-trends`
+        This method retrieves all results by repeatedly calling the following endpoint -
+        `GET network-monitoring/v1/bssids`
 
         Args:
             central_conn (NewCentralBase): Central connection object.
-            serial_number (str): Serial number of the AP.
-            start_time (int, optional): Start time (epoch seconds) for range queries.
-            end_time (int, optional): End time (epoch seconds) for range queries.
-            duration (str|int, optional): Duration string or seconds for relative queries.
+            filter_str (str, optional): Optional filter expression for the BSSID list.
+            sort (str, optional): Optional sort expression for the BSSID list.
 
         Returns:
-            (dict|list): API response for memory-utilization-trends.
+            (list[dict]): List of BSSID items.
+        """
+        return get_all_pages(
+            MonitoringAPs.get_bssids,
+            limit=BSSID_LIMIT,
+            central_conn=central_conn,
+            filter_str=filter_str,
+            sort=sort,
+        )
+
+    @staticmethod
+    def get_bssids(
+        central_conn, filter_str=None, sort=None, limit=BSSID_LIMIT, next_page=1
+    ):
+        """
+        Retrieve a single page of fleet BSSIDs.
+
+        This method makes an API call to the following endpoint -
+        `GET network-monitoring/v1/bssids`
+
+        Args:
+            central_conn (NewCentralBase): Central connection object.
+            filter_str (str, optional): Optional filter expression for the BSSID list.
+            sort (str, optional): Optional sort expression for the BSSID list.
+            limit (int, optional): Number of entries to return.
+            next_page (int, optional): Pagination cursor/index for the next page.
+
+        Returns:
+            (dict): API response for the bssids endpoint.
 
         Raises:
-            ParameterError: If serial_number is missing/invalid.
+            ParameterError: If limit, next_page, filter_str, or sort is invalid.
         """
-        validate_device_serial(serial_number)
-        path = f"{MONITOR_TYPE}/{serial_number}/memory-utilization-trends"
-        if start_time is None and end_time is None and duration is None:
-            return execute_get(
-                central_conn,
-                endpoint=path,
-            )
+        validate_limit_and_next(limit, next_page, BSSID_LIMIT)
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("sort", sort)
 
         return execute_get(
             central_conn,
-            endpoint=path,
+            endpoint="bssids",
             params={
-                "filter": generate_timestamp_str(
-                    start_time=start_time, end_time=end_time, duration=duration
-                )
+                "filter": filter_str,
+                "sort": sort,
+                "limit": limit,
+                "next": next_page,
             },
         )
 
     @staticmethod
-    def get_ap_poe_utilization(
-        central_conn,
-        serial_number,
-        start_time=None,
-        end_time=None,
-        duration=None,
-    ):
+    def get_all_swarms(central_conn, filter_str=None, sort=None):
         """
-        Retrieve power consumption trends for an AP.
+        Retrieve all swarms, handling pagination.
 
-        This method makes an API call to the following endpoint - `GET network-monitoring/v1/aps/{serial_number}/power-consumption-trends`
+        This method retrieves all results by repeatedly calling the following endpoint -
+        `GET network-monitoring/v1/swarms`
 
         Args:
             central_conn (NewCentralBase): Central connection object.
-            serial_number (str): Serial number of the AP.
-            start_time (int, optional): Start time (epoch seconds) for range queries.
-            end_time (int, optional): End time (epoch seconds) for range queries.
-            duration (str|int, optional): Duration string or seconds for relative queries.
+            filter_str (str, optional): Optional filter expression for the swarm list.
+            sort (str, optional): Optional sort expression for the swarm list.
 
         Returns:
-            (dict|list): API response for power-consumption-trends.
+            (list[dict]): List of swarm items.
+        """
+        return get_all_pages(
+            MonitoringAPs.get_swarms,
+            limit=SWARM_LIMIT,
+            central_conn=central_conn,
+            filter_str=filter_str,
+            sort=sort,
+        )
+
+    @staticmethod
+    def get_swarms(
+        central_conn, filter_str=None, sort=None, limit=SWARM_LIMIT, next_page=1
+    ):
+        """
+        Retrieve a single page of swarms.
+
+        This method makes an API call to the following endpoint -
+        `GET network-monitoring/v1/swarms`
+
+        Args:
+            central_conn (NewCentralBase): Central connection object.
+            filter_str (str, optional): Optional filter expression for the swarm list.
+            sort (str, optional): Optional sort expression for the swarm list.
+            limit (int, optional): Number of entries to return.
+            next_page (int, optional): Pagination cursor/index for the next page.
+
+        Returns:
+            (dict): API response for the swarms endpoint.
 
         Raises:
-            ParameterError: If serial_number is missing/invalid.
+            ParameterError: If limit, next_page, filter_str, or sort is invalid.
         """
-        validate_device_serial(serial_number)
-        path = f"{MONITOR_TYPE}/{serial_number}/power-consumption-trends"
-        if start_time is None and end_time is None and duration is None:
-            return execute_get(
-                central_conn,
-                endpoint=path,
-            )
+        validate_limit_and_next(limit, next_page, SWARM_LIMIT)
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("sort", sort)
 
         return execute_get(
             central_conn,
-            endpoint=path,
+            endpoint="swarms",
             params={
-                "filter": generate_timestamp_str(
-                    start_time=start_time, end_time=end_time, duration=duration
-                )
+                "filter": filter_str,
+                "sort": sort,
+                "limit": limit,
+                "next": next_page,
             },
         )
 
     @staticmethod
-    def get_wlans(
+    def get_swarm_details(central_conn, cluster_id):
+        """
+        Get details for a specific swarm.
+
+        This method makes an API call to the following endpoint -
+        `GET network-monitoring/v1/swarms/{cluster_id}`
+
+        Args:
+            central_conn (NewCentralBase): Central connection object.
+            cluster_id (str): Cluster identifier for the swarm.
+
+        Returns:
+            (dict): API response with swarm details.
+
+        Raises:
+            ParameterError: If cluster_id is missing.
+        """
+        validate_required_value("cluster_id", cluster_id)
+        return execute_get(central_conn, endpoint=f"swarms/{cluster_id}")
+
+    @staticmethod
+    def get_ap_radios(central_conn, serial_number):
+        """
+        Retrieve radios associated with an AP.
+
+        This method makes an API call to the following endpoint -
+        `GET network-monitoring/v1/aps/{serial_number}/radios`
+
+        Args:
+            central_conn (NewCentralBase): Central connection object.
+            serial_number (str): Serial number of the AP.
+
+        Returns:
+            (dict): API response with radio details for the AP.
+
+        Raises:
+            ParameterError: If serial_number is missing/invalid.
+        """
+        validate_central_conn_and_serial(central_conn, serial_number)
+        return execute_get(central_conn, endpoint=f"{MONITOR_TYPE}/{serial_number}/radios")
+
+    @staticmethod
+    def get_ap_radio_trends(
         central_conn,
+        serial_number,
+        radio_number,
+        metric,
+        start_time=None,
+        end_time=None,
+        duration=None,
         site_id=None,
-        serial_number=None,
+        return_raw_response=False,
+    ):
+        """
+        Retrieve trend data for a radio under an AP.
+
+        This method makes an API call to one of the following endpoints based on `metric` -
+        `GET network-monitoring/v1/aps/{serial_number}/radios/{radio_number}/throughput-trends`
+        `GET network-monitoring/v1/aps/{serial_number}/radios/{radio_number}/channel-utilization-trends`
+        `GET network-monitoring/v1/aps/{serial_number}/radios/{radio_number}/channel-quality-trends`
+        `GET network-monitoring/v1/aps/{serial_number}/radios/{radio_number}/noise-floor-trends`
+        `GET network-monitoring/v1/aps/{serial_number}/radios/{radio_number}/frames-trends`
+
+        Args:
+            central_conn (NewCentralBase): Central connection object.
+            serial_number (str): Serial number of the AP.
+            radio_number (str|int): Radio number under the AP.
+            metric (str): Radio trend metric to retrieve.
+            start_time (int, optional): Start time (epoch seconds) for range queries.
+            end_time (int, optional): End time (epoch seconds) for range queries.
+            duration (str|int, optional): Duration string or seconds for relative queries.
+            site_id (str, optional): Site identifier to scope the trend request.
+            return_raw_response (bool, optional): If True, return the raw API payload. Otherwise return normalized trend samples.
+
+        Returns:
+            (dict|list): If return_raw_response is True returns the raw API response; otherwise returns normalized trend samples.
+
+        Raises:
+            ParameterError: If serial_number, radio_number, or metric is invalid.
+        """
+        validate_required_value("radio_number", radio_number)
+        return MonitoringAPs._execute_trend_request(
+            central_conn=central_conn,
+            serial_number=serial_number,
+            metric=metric,
+            metric_map=RADIO_TREND_METRICS,
+            resource_path=f"radios/{radio_number}",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
+
+    @staticmethod
+    def get_ap_ports(central_conn, serial_number):
+        """
+        Retrieve ports associated with an AP.
+
+        This method makes an API call to the following endpoint -
+        `GET network-monitoring/v1/aps/{serial_number}/ports`
+
+        Args:
+            central_conn (NewCentralBase): Central connection object.
+            serial_number (str): Serial number of the AP.
+
+        Returns:
+            (dict): API response with port details for the AP.
+
+        Raises:
+            ParameterError: If serial_number is missing/invalid.
+        """
+        validate_central_conn_and_serial(central_conn, serial_number)
+        return execute_get(central_conn, endpoint=f"{MONITOR_TYPE}/{serial_number}/ports")
+
+    @staticmethod
+    def get_ap_port_trends(
+        central_conn,
+        serial_number,
+        port_index,
+        metric,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        """
+        Retrieve trend data for a port under an AP.
+
+        This method makes an API call to one of the following endpoints based on `metric` -
+        `GET network-monitoring/v1/aps/{serial_number}/ports/{port_index}/throughput-trends`
+        `GET network-monitoring/v1/aps/{serial_number}/ports/{port_index}/frames-trends`
+        `GET network-monitoring/v1/aps/{serial_number}/ports/{port_index}/crc-trends`
+        `GET network-monitoring/v1/aps/{serial_number}/ports/{port_index}/collisions-trends`
+
+        Args:
+            central_conn (NewCentralBase): Central connection object.
+            serial_number (str): Serial number of the AP.
+            port_index (str|int): Port index under the AP.
+            metric (str): Port trend metric to retrieve.
+            start_time (int, optional): Start time (epoch seconds) for range queries.
+            end_time (int, optional): End time (epoch seconds) for range queries.
+            duration (str|int, optional): Duration string or seconds for relative queries.
+            site_id (str, optional): Site identifier to scope the trend request.
+            return_raw_response (bool, optional): If True, return the raw API payload. Otherwise return normalized trend samples.
+
+        Returns:
+            (dict|list): If return_raw_response is True returns the raw API response; otherwise returns normalized trend samples.
+
+        Raises:
+            ParameterError: If serial_number, port_index, or metric is invalid.
+        """
+        validate_required_value("port_index", port_index)
+        return MonitoringAPs._execute_trend_request(
+            central_conn=central_conn,
+            serial_number=serial_number,
+            metric=metric,
+            metric_map=PORT_TREND_METRICS,
+            resource_path=f"ports/{port_index}",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
+
+    @staticmethod
+    def get_all_ap_tunnels(
+        central_conn,
+        serial_number,
+        site_id=None,
         filter_str=None,
         sort=None,
-        limit=WLAN_LIMIT,
+    ):
+        """
+        Retrieve all AP tunnels, handling pagination.
+
+        This method retrieves all results by repeatedly calling the following endpoint -
+        `GET network-monitoring/v1/aps/{serial_number}/tunnels`
+
+        Args:
+            central_conn (NewCentralBase): Central connection object.
+            serial_number (str): Serial number of the AP.
+            site_id (str, optional): Site identifier for the tunnel list.
+            filter_str (str, optional): Optional filter expression for the tunnel list.
+            sort (str, optional): Optional sort expression for the tunnel list.
+
+        Returns:
+            (list[dict]): List of tunnel items for the AP.
+        """
+        return get_all_pages(
+            MonitoringAPs.get_ap_tunnels,
+            limit=TUNNEL_LIMIT,
+            central_conn=central_conn,
+            serial_number=serial_number,
+            site_id=site_id,
+            filter_str=filter_str,
+            sort=sort,
+        )
+
+    @staticmethod
+    def get_ap_tunnels(
+        central_conn,
+        serial_number,
+        site_id=None,
+        filter_str=None,
+        sort=None,
+        limit=TUNNEL_LIMIT,
         next_page=1,
     ):
         """
-        Retrieve a list of WLANs associated to a customer.
+        Retrieve a single page of AP tunnels.
 
-        This method makes an API call to the following endpoint - `GET network-monitoring/v1/wlans`
+        This method makes an API call to the following endpoint -
+        `GET network-monitoring/v1/aps/{serial_number}/tunnels`
 
         Args:
             central_conn (NewCentralBase): Central connection object.
-            site_id (str, optional): ID of the Site for which WLAN information is requested. Max length 128.
-            serial_number (str, optional): Serial number of an access point device. Max length 16.
-            filter_str (str, optional): OData Version 4.0 filter string (limited functionality). 
-                Supports only 'and' conjunction ('or' and 'not' are NOT supported). 
-                Supported field: band (operators: eq, in). Max length 256.
-            sort (str, optional): Comma separated list of sort expressions. Supported fields: 
-                wlanName, band, status, securityLevel, security, vlan, primaryUsage. Max length 256.
-            limit (int, optional): Maximum number of WLANs to return (0-100, default is 20).
-            next_page (int, optional): Pagination cursor for next page (default is 1).
+            serial_number (str): Serial number of the AP.
+            site_id (str, optional): Site identifier for the tunnel list.
+            filter_str (str, optional): Optional filter expression for the tunnel list.
+            sort (str, optional): Optional sort expression for the tunnel list.
+            limit (int, optional): Number of entries to return.
+            next_page (int, optional): Pagination cursor/index for the next page.
 
         Returns:
-            (dict): API response containing:
-                - items (list): List of WLAN dictionaries with fields like wlanName, primaryUsage,
-                    securityLevel, security, band, status, vlan, id, type.
-                - count (int): Number of WLANs in current response.
-                - total (int): Total number of WLANs matching the criteria.
-                - next (str|None): Pagination cursor for the next page.
+            (dict): API response for the AP tunnels endpoint.
 
         Raises:
-            ParameterError: If limit exceeds 100 or next_page is less than 1.
-            ParameterError: If site_id exceeds 128 characters.
-            ParameterError: If serial_number exceeds 16 characters.
-            ParameterError: If filter_str exceeds 256 characters.
-            ParameterError: If sort exceeds 256 characters.
+            ParameterError: If serial_number, limit, next_page, site_id, filter_str, or sort is invalid.
         """
-        path = "wlans"
-        
-        if limit > WLAN_LIMIT:
-            raise ParameterError(f"limit cannot exceed {WLAN_LIMIT}")
-        if next_page < 1:
-            raise ParameterError("next_page must be 1 or greater")
-        
-        if site_id is not None and len(site_id) > 128:
-            raise ParameterError("site_id cannot exceed 128 characters")
-        if serial_number is not None and len(serial_number) > 16:
-            raise ParameterError("serial_number cannot exceed 16 characters")
-        if filter_str is not None and len(filter_str) > 256:
-            raise ParameterError("filter_str cannot exceed 256 characters")
-        if sort is not None and len(sort) > 256:
-            raise ParameterError("sort cannot exceed 256 characters")
-        
-        params = {
-            "site-id": site_id,
-            "serial-number": serial_number,
-            "filter": filter_str,
-            "sort": sort,
-            "limit": limit,
-            "next": next_page,
-        }
-        return execute_get(central_conn, endpoint=path, params=params)
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_limit_and_next(limit, next_page, TUNNEL_LIMIT)
+        validate_site_id(site_id)
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("sort", sort)
 
+        return execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}/tunnels",
+            params={
+                "site-id": site_id,
+                "filter": filter_str,
+                "sort": sort,
+                "limit": limit,
+                "next": next_page,
+            },
+        )
+
+    @staticmethod
+    def get_ap_tunnel_details(central_conn, serial_number, tunnel_id):
+        """
+        Retrieve details for a tunnel under an AP.
+
+        This method makes an API call to the following endpoint -
+        `GET network-monitoring/v1/aps/{serial_number}/tunnels/{tunnel_id}`
+
+        Args:
+            central_conn (NewCentralBase): Central connection object.
+            serial_number (str): Serial number of the AP.
+            tunnel_id (str): Tunnel identifier under the AP.
+
+        Returns:
+            (dict): API response with tunnel details.
+
+        Raises:
+            ParameterError: If serial_number or tunnel_id is invalid.
+        """
+        validate_central_conn_and_serial(central_conn, serial_number)
+        validate_required_value("tunnel_id", tunnel_id)
+        return execute_get(
+            central_conn,
+            endpoint=f"{MONITOR_TYPE}/{serial_number}/tunnels/{tunnel_id}",
+        )
+
+    @staticmethod
+    def get_ap_tunnel_trends(
+        central_conn,
+        serial_number,
+        tunnel_id,
+        metric,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        return_raw_response=False,
+    ):
+        """
+        Retrieve trend data for a tunnel under an AP.
+
+        This method makes an API call to one of the following endpoints based on `metric` -
+        `GET network-monitoring/v1/aps/{serial_number}/tunnels/{tunnel_id}/throughput-trends`
+        `GET network-monitoring/v1/aps/{serial_number}/tunnels/{tunnel_id}/packet-loss-trends`
+        `GET network-monitoring/v1/aps/{serial_number}/tunnels/{tunnel_id}/mos-trends`
+        `GET network-monitoring/v1/aps/{serial_number}/tunnels/{tunnel_id}/jitter-trends`
+        `GET network-monitoring/v1/aps/{serial_number}/tunnels/{tunnel_id}/latency-trends`
+
+        Args:
+            central_conn (NewCentralBase): Central connection object.
+            serial_number (str): Serial number of the AP.
+            tunnel_id (str): Tunnel identifier under the AP.
+            metric (str): Tunnel trend metric to retrieve.
+            start_time (int, optional): Start time (epoch seconds) for range queries.
+            end_time (int, optional): End time (epoch seconds) for range queries.
+            duration (str|int, optional): Duration string or seconds for relative queries.
+            site_id (str, optional): Site identifier to scope the trend request.
+            return_raw_response (bool, optional): If True, return the raw API payload. Otherwise return normalized trend samples.
+
+        Returns:
+            (dict|list): If return_raw_response is True returns the raw API response; otherwise returns normalized trend samples.
+
+        Raises:
+            ParameterError: If serial_number, tunnel_id, or metric is invalid.
+        """
+        validate_required_value("tunnel_id", tunnel_id)
+        return MonitoringAPs._execute_trend_request(
+            central_conn=central_conn,
+            serial_number=serial_number,
+            metric=metric,
+            metric_map=TUNNEL_TREND_METRICS,
+            resource_path=f"tunnels/{tunnel_id}",
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            return_raw_response=return_raw_response,
+        )
+
+    @staticmethod
     def get_ap_wlans(central_conn, serial_number):
         """
         Retrieve WLANs associated with an AP.
@@ -420,8 +753,5 @@ class MonitoringAPs:
         Raises:
             ParameterError: If serial_number is missing/invalid.
         """
-        validate_device_serial(serial_number)
-        path = f"{MONITOR_TYPE}/{serial_number}/wlans"
-        return execute_get(central_conn, endpoint=path)
-
-
+        validate_central_conn_and_serial(central_conn, serial_number)
+        return execute_get(central_conn, endpoint=f"{MONITOR_TYPE}/{serial_number}/wlans")

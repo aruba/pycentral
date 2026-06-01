@@ -1,14 +1,15 @@
 from ..utils.monitoring_utils import (
+    build_trend_params,
     execute_get,
-    generate_timestamp_str,
+    get_all_pages,
+    normalize_trend_response,
     validate_central_conn_and_serial,
-    clean_switch_trend_data,
+    validate_limit_and_next,
+    validate_query_length,
 )
 from ..exceptions import ParameterError
+from .constants import SWITCH_LIMIT
 
-SWITCH_LIMIT = 1000
-# Maximum length for query parameters (filter_str, sort, search) used across methods
-MAX_QUERY_LEN = 256
 MONITOR_TYPE = "switches"
 
 
@@ -17,6 +18,9 @@ class MonitoringSwitches:
     def get_all_switches(central_conn, filter_str=None, sort=None):
         """
         Retrieve all switches, handling pagination.
+
+        This method retrieves all results by repeatedly calling the following endpoint -
+        `GET network-monitoring/v1/switches`
 
         Args:
             central_conn (NewCentralBase): Central connection object.
@@ -27,31 +31,22 @@ class MonitoringSwitches:
         Returns:
             (list[dict]): List of switch items.
         """
-        switches = []
-        total_switches = None
-        limit = SWITCH_LIMIT
-        next = 1
-        while True:
-            response = MonitoringSwitches.get_switches(
-                central_conn, filter_str=filter_str, sort=sort, limit=limit, next=next
-            )
-            if total_switches is None:
-                total_switches = response.get("total", 0)
-            switches.extend(response.get("items", []))
-            if len(switches) >= total_switches:
-                break
-            next = response.get("next")
-            if next is None:
-                break
-
-        return switches
+        return get_all_pages(
+            MonitoringSwitches.get_switches,
+            limit=SWITCH_LIMIT,
+            central_conn=central_conn,
+            filter_str=filter_str,
+            sort=sort,
+        )
 
     @staticmethod
     def get_switches(
-        central_conn, filter_str=None, sort=None, limit=SWITCH_LIMIT, next=1
+        central_conn, filter_str=None, sort=None, limit=SWITCH_LIMIT, next_page=1
     ):
         """
         Retrieve a single page of switches associated to a customer, based on the query parameters provided.
+
+        This method makes an API call to the following endpoint - `GET network-monitoring/v1/switches`
 
         Args:
             central_conn (NewCentralBase): Central connection object.
@@ -63,30 +58,23 @@ class MonitoringSwitches:
                 optionally followed by 'asc' or 'desc'. Max length 256.
                 Supported fields: siteId, model, status, deployment, serialNumber, deviceName.
             limit (int, optional): Maximum number of switches to return (0-1000, default is 1000).
-            next (int, optional): Pagination cursor for next page of resources (default is 1).
+            next_page (int, optional): Pagination cursor for next page of resources (default is 1).
 
         Returns:
             (dict): API response containing keys like 'items', 'total', and 'next'.
 
         Raises:
-            ParameterError: If limit exceeds 1000.
+            ParameterError: If limit exceeds 1000 or next_page is less than 1.
             ParameterError: If filter_str exceeds the maximum query length.
             ParameterError: If sort exceeds the maximum query length.
         """
-        if limit > SWITCH_LIMIT:
-            raise ParameterError(f"limit cannot exceed {SWITCH_LIMIT}")
-        if filter_str is not None and len(filter_str) > MAX_QUERY_LEN:
-            raise ParameterError(
-                f"filter_str cannot exceed {MAX_QUERY_LEN} characters"
-            )
-        if sort is not None and len(sort) > MAX_QUERY_LEN:
-            raise ParameterError(
-                f"sort cannot exceed {MAX_QUERY_LEN} characters"
-            )
+        validate_limit_and_next(limit, next_page, SWITCH_LIMIT)
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("sort", sort)
 
         params = {
             "limit": limit,
-            "next": next,
+            "next": next_page,
             "filter": filter_str,
             "sort": sort,
         }
@@ -224,18 +212,9 @@ class MonitoringSwitches:
         validate_central_conn_and_serial(central_conn, serial_number)
         if limit > SWITCH_LIMIT:
             raise ParameterError(f"limit cannot exceed {SWITCH_LIMIT}")
-        if filter_str is not None and len(filter_str) > MAX_QUERY_LEN:
-            raise ParameterError(
-                f"filter_str cannot exceed {MAX_QUERY_LEN} characters"
-            )
-        if search is not None and len(search) > MAX_QUERY_LEN:
-            raise ParameterError(
-                f"search cannot exceed {MAX_QUERY_LEN} characters"
-            )
-        if sort is not None and len(sort) > MAX_QUERY_LEN:
-            raise ParameterError(
-                f"sort cannot exceed {MAX_QUERY_LEN} characters"
-            )
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("search", search)
+        validate_query_length("sort", sort)
 
         params = {
             "limit": limit,
@@ -288,18 +267,9 @@ class MonitoringSwitches:
         validate_central_conn_and_serial(central_conn, serial_number)
         if limit > SWITCH_LIMIT:
             raise ParameterError(f"limit cannot exceed {SWITCH_LIMIT}")
-        if filter_str is not None and len(filter_str) > MAX_QUERY_LEN:
-            raise ParameterError(
-                f"filter_str cannot exceed {MAX_QUERY_LEN} characters"
-            )
-        if search is not None and len(search) > MAX_QUERY_LEN:
-            raise ParameterError(
-                f"search cannot exceed {MAX_QUERY_LEN} characters"
-            )
-        if sort is not None and len(sort) > MAX_QUERY_LEN:
-            raise ParameterError(
-                f"sort cannot exceed {MAX_QUERY_LEN} characters"
-            )
+        validate_query_length("filter_str", filter_str)
+        validate_query_length("search", search)
+        validate_query_length("sort", sort)
 
         params = {
             "limit": limit,
@@ -343,26 +313,16 @@ class MonitoringSwitches:
         if not central_conn:
             raise ParameterError("central_conn is required")
 
-        filter_str = None
-        if start_time is not None or end_time is not None or duration is not None:
-            try:
-                filter_str = generate_timestamp_str(
-                    start_time=start_time, end_time=end_time, duration=duration
-                )
-            except ValueError as e:
-                raise ParameterError(str(e)) from e
-
-        params = {
-            "site-id": site_id,
-            "filter": filter_str,
-        }
+        params = build_trend_params(
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+        )
         path = f"{MONITOR_TYPE}/topn-interface-trends"
         response = execute_get(central_conn, endpoint=path, params=params)
 
-        if return_raw_response:
-            return response
-
-        return clean_switch_trend_data(response)
+        return normalize_trend_response(response, return_raw_response)
 
     @staticmethod
     def get_switch_interface_trends(
@@ -406,28 +366,18 @@ class MonitoringSwitches:
         """
         validate_central_conn_and_serial(central_conn, serial_number)
 
-        filter_str = None
-        if start_time is not None or end_time is not None or duration is not None:
-            try:
-                filter_str = generate_timestamp_str(
-                    start_time=start_time, end_time=end_time, duration=duration
-                )
-            except ValueError as e:
-                raise ParameterError(str(e)) from e
-
-        params = {
-            "site-id": site_id,
-            "interface-id": interface_id,
-            "uplink": uplink,
-            "filter": filter_str,
-        }
+        params = build_trend_params(
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+        ) or {}
+        params["interface-id"] = interface_id
+        params["uplink"] = uplink
         path = f"{MONITOR_TYPE}/{serial_number}/interface-trends"
         response = execute_get(central_conn, endpoint=path, params=params)
 
-        if return_raw_response:
-            return response
-
-        return clean_switch_trend_data(response)
+        return normalize_trend_response(response, return_raw_response)
 
     @staticmethod
     def get_switch_hardware_trends(
@@ -468,26 +418,16 @@ class MonitoringSwitches:
         """
         validate_central_conn_and_serial(central_conn, serial_number)
 
-        filter_str = None
-        if start_time is not None or end_time is not None or duration is not None:
-            try:
-                filter_str = generate_timestamp_str(
-                    start_time=start_time, end_time=end_time, duration=duration
-                )
-            except ValueError as e:
-                raise ParameterError(str(e)) from e
-
-        params = {
-            "site-id": site_id,
-            "filter": filter_str,
-        }
+        params = build_trend_params(
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+        )
         path = f"{MONITOR_TYPE}/{serial_number}/hardware-trends"
         response = execute_get(central_conn, endpoint=path, params=params)
 
-        if return_raw_response:
-            return response
-
-        return clean_switch_trend_data(response)
+        return normalize_trend_response(response, return_raw_response)
 
     @staticmethod
     def get_switch_interface_poe(central_conn, serial_number):

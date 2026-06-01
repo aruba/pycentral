@@ -7,7 +7,7 @@ This module contains constant values for API endpoints, cluster URLs,
 and configuration mappings used throughout the pycentral SDK.
 
 Attributes:
-    CLUSTER_BASE_URLS (dict[str, str]): Public HPE Aruba Networking Central cluster
+    CLUSTER_BASE_URLS (dict[str, str]): Public Central cluster
         names with their corresponding API Base URLs. You can update this
         dictionary to add your own private cluster details. You can learn more about Base URLs <a href="https://developer.arubanetworks.com/new-central/docs/getting-started-with-rest-apis#api-gateway-base-urls" target="_blank">here</a>.
 
