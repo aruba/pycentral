@@ -92,6 +92,23 @@ Monitoring modules available in the PyCentral SDK are separated by type APs, Cli
 ## Switches
 ::: pycentral.new_monitoring.switches
 
+| Module name | API endpoint(s) | Description |
+| --- | --- | --- |
+| `get_all_switches` | `GET network-monitoring/v1/switches` | Retrieves all switches by paging through the switch listing endpoint. |
+| `get_switches` | `GET network-monitoring/v1/switches` | Retrieves a single page of switch records with optional filter and sort support. |
+| `get_switch_details` | `GET network-monitoring/v1/switches/{serial_number}` | Retrieves details for a specific switch by serial number, stack ID, or conductor serial. |
+| `get_stack_members` | `GET network-monitoring/v1/stack/{serial_number}/members` | Retrieves stack member details for a given stack ID or conductor serial. |
+| `get_switch_hardware_categories` | `GET network-monitoring/v1/switches/{serial_number}/hardware-categories` | Retrieves hardware details for a specific switch. |
+| `get_switch_lag` | `GET network-monitoring/v1/switches/{serial_number}/lag` | Retrieves link aggregation group (LAG) summary details for a specific switch. |
+| `get_switch_interfaces` | `GET network-monitoring/v1/switches/{serial_number}/interfaces` | Retrieves interface details for a specific switch with optional filter, search, and sort support. |
+| `get_switch_vlans` | `GET network-monitoring/v1/switches/{serial_number}/vlans` | Retrieves VLAN details for a specific switch with optional filter, search, and sort support. |
+| `get_topn_interface_trends` | `GET network-monitoring/v1/switches/topn-interface-trends` | Retrieves top-N switch interface trends (rx bytes, tx bytes) for a site over a given time period. |
+| `get_switch_interface_trends` | `GET network-monitoring/v1/switches/{serial_number}/interface-trends` | Retrieves interface trend data (RX/TX bytes, discards, errors, etc.) for a specific switch. |
+| `get_switch_hardware_trends` | `GET network-monitoring/v1/switches/{serial_number}/hardware-trends` | Retrieves hardware trend data (CPU, memory, PoE) for a specific switch. |
+| `get_switch_interface_poe` | `GET network-monitoring/v1/switches/{serial_number}/interface-poe` | Retrieves interface PoE details for a specific switch. |
+| `get_switch_vsx` | `GET network-monitoring/v1/switches/{serial_number}/vsx` | Retrieves Virtual Switching Extension (VSX) configuration and operational details for a specific switch. |
+
+---
 
 ## WLANs
 ::: pycentral.new_monitoring.wlans
