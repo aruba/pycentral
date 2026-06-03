@@ -42,7 +42,7 @@ CLUSTER_BASE_URLS = {
 }
 
 SUPPORTED_CONFIG_PERSONAS = {
-    "Campus AP": "CAMPUS_AP",
+    "Campus Access Point": "CAMPUS_AP",
     "Micro Branch AP": "MICROBRANCH_AP",
     "Access Switch": "ACCESS_SWITCH",
     "Core Switch": "CORE_SWITCH",
