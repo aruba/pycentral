@@ -195,6 +195,12 @@ class Device(ScopeBase):
             and device_function in SUPPORTED_CONFIG_PERSONAS
         ):
             self.config_persona = SUPPORTED_CONFIG_PERSONAS[device_function]
+        elif device_function not in SUPPORTED_CONFIG_PERSONAS and device_function != '-':
+            self.central_conn.logger.warning(
+                f"Device function '{device_function}' is not a supported "
+                f"persona. 'config_persona' will not be set for device "
+                f"{self.get_serial()}."
+            )
 
     def __rename_keys(self, api_dict, api_attribute_mapping):
         """Renames the keys of the attributes from the API response.
