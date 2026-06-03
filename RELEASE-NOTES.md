@@ -1,3 +1,15 @@
+# 2.0a21
+
+This release contains minor bug fixes to align with actual API response values for device personas.
+
+### Bug Fixes
+
+- **Device Persona Handling**
+  - Corrected the persona key for Campus Access Points in `SUPPORTED_CONFIG_PERSONAS` from `"Campus AP"` to `"Campus Access Point"` to match the value returned by the Central API
+  - Added a warning log when a device's `device_function` value is not a recognised persona (and is not `'-'`), rather than silently skipping `config_persona` assignment
+
+Full Changelog: [v2.0a20...v2.0a21](https://github.com/aruba/pycentral/compare/v2.0a20...v2.0a21)
+
 # 2.0a20
 
 This release significantly expands the monitoring module coverage for APs, Gateways, and WLANs, adds 429 rate-limit retry handling, fixes streaming WebSocket client issues, and updates product branding across the SDK.
