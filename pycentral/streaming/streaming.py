@@ -7,22 +7,35 @@ import websocket
 from google.protobuf.json_format import MessageToDict
 
 from .events.audit import audit_trail_pb2
+from .events.ap import ap_events_pb2
 from .events.location import location_pb2
 from .events.location_analytics import location_analytics_pb2
 from .events.geofence import geofence_pb2
 from .events.event import event_pb2
+from google.protobuf import symbol_database as _symbol_database
+from google.protobuf.json_format import MessageToDict
+import threading
+import signal
 
 VERSION = "v1alpha1"
 # Central-mandated ping settings (not user-configurable)
 _PING_INTERVAL = 10  # seconds between keep-alive pings
 _PING_TIMEOUT = 5  # seconds to wait for a pong response
 
-# Supported Events and their corresponding endpoints and decoders
+
+# Events grouped by their URL service path. To add a new category, add a
+# new top-level key; to add a new event, add it under the right category.
+# Each value is a decoder class, or None for dynamic dispatch.
 SUPPORTED_EVENTS = {
-    "audit-trail-events": audit_trail_pb2.AuditTrail,
-    "location": location_pb2.StreamLocationMessage,
-    "rssi-events": location_analytics_pb2.RssiEvent,
-    "geofence": geofence_pb2.StreamGeofenceMessage,
+    "network-services": {
+        "audit-trail-events": audit_trail_pb2.AuditTrail,
+        "location": location_pb2.StreamLocationMessage,
+        "rssi-events": location_analytics_pb2.RssiEvent,
+        "geofence": geofence_pb2.StreamGeofenceMessage,
+    },
+    "network-monitoring": {
+        "ap-events": None,  # decoded dynamically via CloudEvent type_url
+    },
 }
 
 
@@ -65,12 +78,15 @@ class Streaming:
         # cache the commonly used app route and token key to simplify lookups
         self.app_route = self.central_conn._app_routes["new_central"]
         self.token_key = self.app_route["token_key"]
-        if event not in SUPPORTED_EVENTS:
+        all_events = {e for evts in SUPPORTED_EVENTS.values() for e in evts}
+        if event not in all_events:
             raise ValueError(
-                f"Unsupported event: {event}. Supported events: {list(SUPPORTED_EVENTS.keys())}"
+                f"Unsupported event: {event}. Supported events: {sorted(all_events)}"
             )
         self.endpoint = event
-        self.decoder = SUPPORTED_EVENTS[event]
+        self.decoder = next(
+            evts[event] for evts in SUPPORTED_EVENTS.values() if event in evts
+        )
         self.reconnect_delay = reconnect_delay
         self.max_retries = max_retries
         self.logger = central_conn.logger
@@ -131,7 +147,27 @@ class Streaming:
         event_data = event_pb2.CloudEvent()
         event_data.ParseFromString(message)
 
-        decoded_message = self.decoder()
+        if self.decoder is not None:
+            decoded_message = self.decoder()
+        else:
+            # Dynamic dispatch: resolve the message class from the Any type_url.
+            # The server may use a short package path (e.g. "ap.APSystemStat")
+            # that doesn't match the fully-qualified name in the symbol database
+            # (e.g. "network_monitoring.ap.v1alpha1.APSystemStat"), so fall back
+            # to a direct attribute lookup on the ap_events_pb2 module.
+            type_name = event_data.proto_data.type_url.rsplit("/", 1)[-1]
+            short_name = type_name.rsplit(".", 1)[-1]
+            try:
+                msg_class = _symbol_database.Default().GetSymbol(type_name)
+            except KeyError:
+                msg_class = getattr(ap_events_pb2, short_name, None)
+            if msg_class is None:
+                self.logger.error(
+                    f"Unknown ap-events message type: {type_name}. Skipping."
+                )
+                return
+            decoded_message = msg_class()
+
         decoded_message.ParseFromString(event_data.proto_data.value)
         json_message = MessageToDict(
             decoded_message, preserving_proto_field_name=True
@@ -140,9 +176,7 @@ class Streaming:
             try:
                 self.user_callback(json_message)
             except Exception as callback_error:
-                self.logger.error(
-                    f"Callback raised an error: {callback_error}"
-                )
+                self.logger.error(f"Callback raised an error: {callback_error}")
         else:
             self.logger.info(f"{json_message}")
 
@@ -218,7 +252,12 @@ class Streaming:
         base_url = self.app_route["base_url"].rstrip("/")
         # Strip any scheme so we can always prefix with wss://
         host = base_url.replace("https://", "", 1).replace("http://", "", 1)
-        url = f"wss://{host}/network-services/{VERSION}/{self.endpoint}"
+        service = next(
+            svc
+            for svc, evts in SUPPORTED_EVENTS.items()
+            if self.endpoint in evts
+        )
+        url = f"wss://{host}/{service}/{VERSION}/{self.endpoint}"
         if self.filters:
             query_filter = urlencode({"event-types": self.filters})
             url = f"{url}?{query_filter}"
@@ -271,7 +310,10 @@ class Streaming:
                         break
 
                     retry_count += 1
-                    if self.max_retries is not None and retry_count >= self.max_retries:
+                    if (
+                        self.max_retries is not None
+                        and retry_count >= self.max_retries
+                    ):
                         self.logger.error(
                             f"Max retries ({self.max_retries}) reached. Stopping."
                         )
@@ -281,7 +323,11 @@ class Streaming:
                     self.logger.info(
                         f"Connection closed. Reconnecting in {self.reconnect_delay}s… "
                         f"(attempt {retry_count}"
-                        + (f"/{self.max_retries}" if self.max_retries is not None else "")
+                        + (
+                            f"/{self.max_retries}"
+                            if self.max_retries is not None
+                            else ""
+                        )
                         + ")"
                     )
                     if self.stop_event.wait(timeout=self.reconnect_delay):
@@ -294,7 +340,10 @@ class Streaming:
                     if self.ws:
                         self.ws.close()
                     retry_count += 1
-                    if self.max_retries is not None and retry_count >= self.max_retries:
+                    if (
+                        self.max_retries is not None
+                        and retry_count >= self.max_retries
+                    ):
                         self.logger.error(
                             f"Max retries ({self.max_retries}) reached. Stopping."
                         )
