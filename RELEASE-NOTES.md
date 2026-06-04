@@ -1,3 +1,22 @@
+# 2.0a22
+
+This release adds AP event streaming support via a new `network-monitoring` service category, with dynamic protobuf dispatch for AP event types.
+
+### New Features
+
+- **AP Events Streaming**
+  - Added `ap-events` to the streaming module under the new `network-monitoring` service path
+  - Added `pycentral/streaming/events/ap/ap_events_pb2.py` — generated protobuf definitions for AP event messages (e.g. `APInfo`, `ClusterInfo`)
+  - The `Streaming` client now dynamically resolves the AP event message class from the CloudEvent `type_url`, first via the protobuf symbol database and falling back to a direct attribute lookup on `ap_events_pb2`
+
+### Improvements
+
+- **Streaming `SUPPORTED_EVENTS` restructured**
+  - Flat event dict replaced by a nested structure keyed by URL service path (`network-services`, `network-monitoring`), enabling correct WebSocket URL construction per event category
+  - WebSocket URL is now built dynamically from the service group the requested event belongs to, fixing the URL for `network-monitoring` events
+
+Full Changelog: [v2.0a21...v2.0a22](https://github.com/aruba/pycentral/compare/v2.0a21...v2.0a22)
+
 # 2.0a21
 
 This release contains minor bug fixes to align with actual API response values for device personas.

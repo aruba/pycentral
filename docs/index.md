@@ -27,7 +27,7 @@ Today, there are two versions of PyCentral, each designed for different versions
 | Version                                                        | Supports                                                                                       | Notes                        |
 | :------------------------------------------------------------- | :--------------------------------------------------------------------------------------------- | :--------------------------- |
 | [v1](https://pypi.org/project/pycentral/)                      | Classic Central                                                 | Legacy Version               |
-| [v2(pre-release)](https://pypi.org/project/pycentral/2.0a21/) | Central( or new Central), GLP, Classic Central | Backwards compatible with v1 |
+| [v2(pre-release)](https://pypi.org/project/pycentral/2.0a22/) | Central( or new Central), GLP, Classic Central | Backwards compatible with v1 |
 
 ## Quick Example
 
