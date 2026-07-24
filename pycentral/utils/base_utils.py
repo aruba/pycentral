@@ -22,6 +22,7 @@ NEW_CENTRAL_C_DEFAULT_ARGS = {
     "client_id": None,
     "client_secret": None,
     "access_token": None,
+    "token_url": None,
 }
 UNIFIED_DEFAULT_ARGS = {
     "client_id": None,
@@ -30,6 +31,7 @@ UNIFIED_DEFAULT_ARGS = {
     "glp_base_url": None,
     "base_url": None,
     "access_token": None,
+    "token_url": None,
 }
 
 APP_TOKEN_CREATION_REQUIRED_KEYS = {
@@ -64,6 +66,9 @@ def new_parse_input_args(token_info):
         client credentials are still required for token refresh when the
         access token expires. Pass `base_url` or `cluster_name` under
         `unified` to also enable Central API calls.
+
+        An optional `token_url` key can be provided under any app to override
+        the default OAuth token endpoint used for token creation and refresh.
     """
     token_info = load_token_info(token_info)
 
@@ -99,7 +104,9 @@ def new_parse_input_args(token_info):
         unified.pop("cluster_name", None)
 
         # Precompute token URL for token creation/refresh
-        if unified.get("workspace_id"):
+        if unified.get("token_url"):
+            unified["_token_url"] = valid_url(unified["token_url"])
+        elif unified.get("workspace_id"):
             unified["_token_url"] = (
                 f"{AUTHENTICATION['OAUTH_GLOBAL']}/{unified['workspace_id']}/token"
             )
@@ -115,7 +122,10 @@ def new_parse_input_args(token_info):
 
             app_token_info["base_url"] = _resolve_base_url(app, app_token_info)
             _validate_token_creation_keys(app, app_token_info)
-            app_token_info["_token_url"] = AUTHENTICATION["OAUTH"]
+            if app_token_info.get("token_url"):
+                app_token_info["_token_url"] = valid_url(app_token_info["token_url"])
+            else:
+                app_token_info["_token_url"] = AUTHENTICATION["OAUTH"]
             apps_token_info[app] = {**NEW_CENTRAL_C_DEFAULT_ARGS, **app_token_info}
 
     return apps_token_info
