@@ -1,3 +1,15 @@
+# 2.0a23
+
+This release updates package dependency constraints to allow compatible dependency updates while preserving major-version guardrails.
+
+### Improvements
+
+- **Dependency Version Constraints**
+  - Relaxed runtime dependencies from exact pins to bounded version ranges in `pyproject.toml`, allowing compatible patch and minor updates while preserving upper bounds
+  - Added bounded version constraints for the optional `colorLog` extra
+
+Full Changelog: [v2.0a22...v2.0a23](https://github.com/aruba/pycentral/compare/v2.0a22...v2.0a23)
+
 # 2.0a22
 
 This release adds AP event streaming support via a new `network-monitoring` service category, with dynamic protobuf dispatch for AP event types.
