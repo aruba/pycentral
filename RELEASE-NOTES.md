@@ -1,12 +1,17 @@
 # 2.0a23
 
-This release updates package dependency constraints to allow compatible dependency updates while preserving major-version guardrails.
+This release updates package dependency constraints to allow compatible dependency updates while preserving major-version guardrails, and aligns device attribute mapping with the latest API response fields.
 
 ### Improvements
 
 - **Dependency Version Constraints**
   - Relaxed runtime dependencies from exact pins to bounded version ranges in `pyproject.toml`, allowing compatible patch and minor updates while preserving upper bounds
   - Added bounded version constraints for the optional `colorLog` extra
+
+### API Compatibility
+
+- **Device Attribute Mapping**
+  - Updated the device API attribute mapping to use the API's `firmwareVersion` field and the `firmware-version` attribute name
 
 Full Changelog: [v2.0a22...v2.0a23](https://github.com/aruba/pycentral/compare/v2.0a22...v2.0a23)
 
