@@ -18,18 +18,18 @@ classifiers = [
     "Development Status :: 4 - Beta",
 ]
 dependencies = [
-    "PyYAML==6.0.3",
-    "oauthlib==3.2.2",
-    "requests_oauthlib==2.0.0",
-    "pytz==2025.2",
-    "protobuf==6.33.5",
-    "websocket-client==1.9.0",
-    "httpx[http2]==0.28.1",
-    "requests==2.33.0",
-    "pycountry==26.2.16"
+    "PyYAML>=6.0.3,<7.0",
+    "oauthlib>=3.2.2,<4.0",
+    "requests_oauthlib>=2.0.0,<3.0",
+    "pytz>=2025.2,<2027.0",
+    "protobuf>=6.33.5,<7.0",
+    "websocket-client>=1.9.0,<2.0",
+    "httpx[http2]>=0.28.1,<1.0",
+    "requests>=2.33.0,<3.0",
+    "pycountry>=26.2.16,<27.0"
 ]
 [project.optional-dependencies]
-colorLog = ["colorlog"]
+colorLog = ["colorlog>=6.10.1,<7.0"]
 
 [project.urls]
 Documentation = "https://pycentral.readthedocs.io/en/v2/"
