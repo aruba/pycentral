@@ -47,7 +47,7 @@ API_ATTRIBUTE_MAPPING = {
     "macAddress": "mac",
     "model": "model",
     "persona": "persona",
-    "softwareVersion": "software-version",
+    "firmwareVersion": "firmware-version",
     "role": "role",
     "partNumber": "part-number",
     "isProvisioned": "provisioned_status",
