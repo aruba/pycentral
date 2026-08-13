@@ -36,7 +36,6 @@ PyCentral also supports a **unified credential** model. Instead of providing sep
 | `workspace_id` | Yes | GLP workspace ID |
 | `base_url` or `cluster_name` | Only for New Central calls | Identifies the Central API gateway. Omit if you only need GLP APIs |
 | `access_token` | No | Pre-existing token; if omitted the SDK generates one automatically |
-| `token_endpoint` | No | Custom OAuth token URL. Overrides the default token endpoint for both token creation and automatic renewal. **Central On-Prem (non-MSP) only** — use this when your deployment's token endpoint differs from the standard GLP or Central OAuth URL |
 
 ### Configuration Examples
 
@@ -67,22 +66,6 @@ token_info = {
 
 This enables GLP APIs only. Add `base_url` or `cluster_name` to also enable New Central APIs.
 
-**Unified — Central On-Prem with custom token endpoint** _(Central On-Prem only)_
-
-The optional `token_endpoint` field overrides the default GLP OAuth token URL used for both token creation and automatic renewal. Only relevant for **Central On-Prem (non-MSP) instances** where the token endpoint differs from the standard GLP OAuth URL.
-
-```python
-token_info = {
-    "unified": {
-        "client_id": "<glp-client-id>",
-        "client_secret": "<glp-client-secret>",
-        "workspace_id": "<workspace-id>",
-        "base_url": "https://<on-prem-central-host>",
-        "token_endpoint": "https://<on-prem-central-host>/oauth2/token"
-    }
-}
-```
-
 ## New Central
 
 **Base URL or Cluster Name (Choose one)**
@@ -103,15 +86,15 @@ Identifies your Central Account's API gateway. Both options function identically
 
 **Custom Token Endpoint** _(Central On-Prem only)_:
 
-The optional `token_endpoint` field overrides the default OAuth token URL used for both token creation and automatic renewal. This is only relevant for **Central On-Prem (non-MSP) instances** where the token endpoint differs from the standard Central OAuth URL.
+For Central On-Prem deployments whose OAuth issuer differs from the standard GLP OAuth issuer, set `token_endpoint` to the complete token URL. The SDK uses it for initial token creation and automatic renewal. `base_url` remains the Central API URL for the On-Prem account. **This option is supported only under `new_central`.**
 
 ```python
 token_info = {
     "new_central": {
         "client_id": "<client-id>",
         "client_secret": "<client-secret>",
-        "base_url": "https://<on-prem-central-host>",
-        "token_endpoint": "https://<on-prem-central-host>/oauth2/token"
+        "base_url": "https://<on-prem-central-api-host>",
+        "token_endpoint": "http://<on-prem-token-issuer>/oauth2/token"
     }
 }
 ```
