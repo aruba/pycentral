@@ -1,3 +1,14 @@
+# 2.0a24
+
+This release adds support for Central On-Prem (3.x) deployments.
+
+### New Features
+- **Central On-Prem (3.x) Support**
+  - Added `token_endpoint` attribute to support Central On-Prem instance as the OAuth issuer differs from the standard GLP OAuth issuer.
+  - Uses the configured endpoint for initial token creation and automatic token renewal.
+  - Documented Central On-Prem (3.x) authentication configuration and clarified that this option is supported under `new_central`.
+Full Changelog: [v2.0a23...v2.0a24](https://github.com/aruba/pycentral/compare/v2.0a23...v2.0a24)
+
 # 2.0a23
 
 This release updates package dependency constraints to allow compatible dependency updates while preserving major-version guardrails, and aligns device attribute mapping with the latest API response fields.

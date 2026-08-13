@@ -22,6 +22,7 @@ NEW_CENTRAL_C_DEFAULT_ARGS = {
     "client_id": None,
     "client_secret": None,
     "access_token": None,
+    "token_endpoint": None,
 }
 UNIFIED_DEFAULT_ARGS = {
     "client_id": None,
@@ -64,6 +65,10 @@ def new_parse_input_args(token_info):
         client credentials are still required for token refresh when the
         access token expires. Pass `base_url` or `cluster_name` under
         `unified` to also enable Central API calls.
+
+        An optional `token_endpoint` key can be provided under `new_central`
+        to override the default OAuth token endpoint used for token creation
+        and refresh in Central On-Prem deployments.
     """
     token_info = load_token_info(token_info)
 
@@ -87,6 +92,11 @@ def new_parse_input_args(token_info):
             )
 
         unified = dict(token_info["unified"])
+        if "token_endpoint" in unified:
+            raise ValueError(
+                "'token_endpoint' is supported only for 'new_central' "
+                "Central On-Prem credentials."
+            )
 
         # GLP is always the primary endpoint
         unified["glp_base_url"] = valid_url(
@@ -99,10 +109,9 @@ def new_parse_input_args(token_info):
         unified.pop("cluster_name", None)
 
         # Precompute token URL for token creation/refresh
-        if unified.get("workspace_id"):
-            unified["_token_url"] = (
-                f"{AUTHENTICATION['OAUTH_GLOBAL']}/{unified['workspace_id']}/token"
-            )
+        unified["_token_url"] = (
+            f"{AUTHENTICATION['OAUTH_GLOBAL']}/{unified['workspace_id']}/token"
+        )
 
         apps_token_info["unified"] = {**UNIFIED_DEFAULT_ARGS, **unified}
 
@@ -112,10 +121,18 @@ def new_parse_input_args(token_info):
                 raise ValueError(
                     f"Unknown app name '{app}' provided. Supported apps: {', '.join(SUPPORTED_APPS)}"
                 )
+            if app != "new_central" and "token_endpoint" in app_token_info:
+                raise ValueError(
+                    "'token_endpoint' is supported only for 'new_central' "
+                    "Central On-Prem credentials."
+                )
 
             app_token_info["base_url"] = _resolve_base_url(app, app_token_info)
             _validate_token_creation_keys(app, app_token_info)
-            app_token_info["_token_url"] = AUTHENTICATION["OAUTH"]
+            if app == "new_central" and "token_endpoint" in app_token_info:
+                app_token_info["_token_url"] = valid_url(app_token_info["token_endpoint"])
+            else:
+                app_token_info["_token_url"] = AUTHENTICATION["OAUTH"]
             apps_token_info[app] = {**NEW_CENTRAL_C_DEFAULT_ARGS, **app_token_info}
 
     return apps_token_info
