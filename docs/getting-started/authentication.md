@@ -84,6 +84,21 @@ Identifies your Central Account's API gateway. Both options function identically
 - Access Token  
     Manually, retrieve an access token. Learn how to retreive an access token [here](https://developer.arubanetworks.com/new-central/docs/generating-and-managing-access-tokens#generate-access-token). **(Tokens expire in 2 hours)**
 
+## Central On-Prem
+
+For Central On-Prem deployments whose OAuth issuer differs from the standard GLP OAuth issuer, set `token_endpoint` to the complete token URL. The SDK uses it for initial token creation and automatic renewal. `base_url` remains the Central API URL for the On-Prem account. **This option is supported only under `new_central`.**
+
+```python
+token_info = {
+    "new_central": {
+        "client_id": "<client-id>",
+        "client_secret": "<client-secret>",
+        "base_url": "https://<on-prem-central-api-host>",
+        "token_endpoint": "http://<on-prem-token-issuer>/oauth2/token"
+    }
+}
+```
+
 ## GLP
 
 **No Base URL Required**   
