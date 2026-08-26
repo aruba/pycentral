@@ -14,6 +14,7 @@ class Profiles:
         name=None,
         central_conn=None,
         config_dict=dict(),
+        path=None,
         local=None,
     ):
         """Instantiate a configuration Profile object.
@@ -26,8 +27,9 @@ class Profiles:
                 object.
             config_dict (dict, optional): Dictionary containing API keys & values
                 used to configure the configuration profile.
-            local (dict, optional): A dictionary containing keys scope_id type int and persona.
-                type str required to designate a local profile.
+            local (dict, optional): A dictionary containing keys scope-id type
+                int and device-function type str required to designate a local profile.
+            path (str, optional): The API path for the profile, omitting base_url/network-config/v1alpha1/.
 
 
         Raises:
@@ -44,6 +46,26 @@ class Profiles:
                 f"name must be a valid string found {type(name)}"
             )
 
+        if path and isinstance(path, str):
+            if name:
+                # URL encode name to handle spaces
+                formatted_name = name.replace(" ", "%20")
+                if path.endswith(name):
+                    # Replace name in path with URL encoded name
+                    path = path[: -len(name)] + formatted_name
+
+                # Append name to path if not already present
+                if not path.endswith(f"/{formatted_name}"):
+                    if path.endswith("/"):
+                        path = f"{path}{formatted_name}"
+                    else:
+                        path = f"{path}/{formatted_name}"
+            self.set_path(path)
+        elif path and not isinstance(path, str):
+            raise ParameterError(
+                f"path must be a valid string found {type(path)}"
+            )
+
         self.__modified = False
         self.materialized = False
 
@@ -56,7 +78,7 @@ class Profiles:
             )
 
         if local and profile_utils.validate_local(local):
-            # Sample Local Data {"scope_id": 12345, "persona": "CAMPUS_AP"}
+            # Sample Local Data {"scope-id": 12345, "device-function": "CAMPUS_AP"}
             self.local = profile_utils.validate_local(local)
         else:
             self.local = None
@@ -252,10 +274,10 @@ class Profiles:
     def set_local_parameters(self, local):
         """Set the local profile parameters for the object.
 
-        Dict provided must have the keys scope_id type int and persona type str.
+        Dict provided must have the keys scope-id type int and device-function type str.
 
         Args:
-            local (dict): A dictionary containing keys scope_id type int and persona
+            local (dict): A dictionary containing keys scope-id type int and device-function
                 type str required to designate a local profile.
         """
         self.local = profile_utils.validate_local(local)
@@ -357,8 +379,10 @@ class Profiles:
         if (
             not hasattr(self, "central_conn")
             or not self.central_conn
-            or "path" not in self.object_data.keys()
-            or not self.object_data["path"]
+            and (
+                "path" not in self.object_data.keys()
+                or not self.object_data["path"]
+            )
         ):
             raise VerificationError(
                 "Create failed - Required attributes missing in Profile. "
@@ -438,8 +462,10 @@ class Profiles:
         if (
             not hasattr(self, "central_conn")
             or not self.central_conn
-            or "path" not in self.object_data.keys()
-            or not self.object_data["path"]
+            and (
+                "path" not in self.object_data.keys()
+                or not self.object_data["path"]
+            )
         ):
             raise VerificationError(
                 "Get failed - Required attributes missing in Profile. "
@@ -737,8 +763,8 @@ class Profiles:
             bulk_key (str, optional): The key required to wrap the configurations for
                 multiple profiles for the bulk API - refer to the API reference for valid values.
                 ex: "profile" for DNS, "layer2-vlan" for VLANs, etc.
-            local (dict, optional): A dictionary containing keys scope_id type int and
-                persona type str required to designate a local profile.
+            local (dict, optional): A dictionary containing keys scope-id type int and
+                device-function type str required to designate a local profile.
 
         Returns:
             (tuple(bool, dict)): Boolean of operation result, and dict of the create API response.
@@ -797,7 +823,7 @@ class Profiles:
                 the path does not include the profile name/id, the API will return all
                 profiles for that type.
             central_conn (NewCentralBase): Established Central connection object.
-            local (dict, optional): A dictionary containing keys scope_id type int and persona
+            local (dict, optional): A dictionary containing keys scope-id type int and device-function
                 type str required to designate a local profile.
 
         Returns:
@@ -841,7 +867,7 @@ class Profiles:
             bulk_key (str, optional): The key required to wrap the configurations for
                 multiple profiles for the bulk API - refer to the API reference for valid values.
                 ex: "profile" for DNS, "layer2-vlan" for VLANs, etc.
-            local (dict): A dictionary containing keys scope_id type int and persona
+            local (dict): A dictionary containing keys scope-id type int and device-function
                 type str required to designate a local profile.
 
         Returns:
@@ -892,7 +918,7 @@ class Profiles:
             path (str): The API endpoint for request, omitting base_url - it's recommended
                 to use the helper function pycentral.utils.url_utils.generate_url().
             central_conn (NewCentralBase): Established Central connection object.
-            local (dict, optional): A dictionary containing keys scope_id type int and persona
+            local (dict, optional): A dictionary containing keys scope-id type int and device-function
                 type str required to designate a local profile.
 
         Returns:
@@ -946,7 +972,7 @@ class Profiles:
             list_dict (list, optional): List of profile configuration dictionaries.
             list_obj (list, optional): List of Profiles objects containing the config_dict
                 attribute.
-            local (dict, optional): A dictionary containing keys scope_id type int and persona
+            local (dict, optional): A dictionary containing keys scope-id type int and device-function
                 type str required to designate a local profile.
 
         Returns:
@@ -1015,7 +1041,7 @@ class Profiles:
             central_conn (NewCentralBase): Established Central connection object.
             list_dict (list, optional): List of profile configuration dictionaries.
             list_obj (list, optional): List of Profiles objects containing the config_dict attribute.
-            local (dict): A dictionary containing keys scope_id type int and persona
+            local (dict): A dictionary containing keys scope-id type int and device-function
                 type str required to designate a local profile.
 
         Returns:
@@ -1069,7 +1095,7 @@ class Profiles:
             path_list (list): List of API paths as type string for requests. It's recommended
                 to use the helper function pycentral.utils.url_utils.generate_url().
             central_conn (NewCentralBase): Established Central connection object.
-            local (dict): A dictionary containing keys scope_id type int and persona
+            local (dict): A dictionary containing keys scope-id type int and device-function
                 type str required to designate a local profile.
             error_on_fail (bool, optional): Flag to indicate whether to log an error
                 with the logger on failure. When flag is set True each delete operation
