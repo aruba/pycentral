@@ -12,29 +12,43 @@ from .events.location import location_pb2
 from .events.location_analytics import location_analytics_pb2
 from .events.geofence import geofence_pb2
 from .events.event import event_pb2
+from .events.alert import alert_pb2
+from .events.client import client_pb2
+from .events.switch import sw_pb2
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.json_format import MessageToDict
 import threading
 import signal
 
-VERSION = "v1alpha1"
 # Central-mandated ping settings (not user-configurable)
 _PING_INTERVAL = 10  # seconds between keep-alive pings
 _PING_TIMEOUT = 5  # seconds to wait for a pong response
 
 
-# Events grouped by their URL service path. To add a new category, add a
-# new top-level key; to add a new event, add it under the right category.
-# Each value is a decoder class, or None for dynamic dispatch.
+# Top-level keys are service paths; second-level keys are API versions.
+# Event values are fixed decoder classes, or None for dynamic dispatch.
 SUPPORTED_EVENTS = {
     "network-services": {
-        "audit-trail-events": audit_trail_pb2.AuditTrail,
-        "location": location_pb2.StreamLocationMessage,
-        "rssi-events": location_analytics_pb2.RssiEvent,
-        "geofence": geofence_pb2.StreamGeofenceMessage,
+        "v1alpha1": {
+            "audit-trail-events": audit_trail_pb2.AuditTrail,
+            "location": location_pb2.StreamLocationMessage,
+            "rssi-events": location_analytics_pb2.RssiEvent,
+            "geofence": geofence_pb2.StreamGeofenceMessage,
+        },
     },
     "network-monitoring": {
-        "ap-events": None,  # decoded dynamically via CloudEvent type_url
+        "v1alpha1": {
+            "ap-events": None,  # decoded dynamically via CloudEvent type_url
+        },
+        "v1": {
+            "clients-events": client_pb2.StreamClientMessage,
+            "switch-events": sw_pb2.StreamSwitchMessage,
+        },
+    },
+    "network-notifications": {
+        "v1": {
+            "alert-events": alert_pb2.AlertStreamingMessage,
+        },
     },
 }
 
@@ -49,11 +63,21 @@ class Streaming:
         - Decode protobuf payloads and deliver them to a user callback.
         - Allow graceful stop and cleanup of the WebSocket connection.
 
+    Supported events:
+        - ``audit-trail-events`` for audit trail updates
+        - ``location`` for location updates
+        - ``rssi-events`` for RSSI updates
+        - ``geofence`` for geofence updates
+        - ``ap-events`` for access point updates
+        - ``clients-events`` for client updates
+        - ``switch-events`` for switch updates
+        - ``alert-events`` for alert updates
+
     Args:
         central_conn (NewCentralBase): Central connection object, used for
             tokens, base URL and logging.
-        event (str): Streaming event name. Must be one of the keys in
-            SUPPORTED_EVENTS (for example, "audit-trail-events").
+        event (str): Unique streaming event name registered in the nested
+            SUPPORTED_EVENTS map (for example, "audit-trail-events").
         reconnect_delay (int, optional): Delay in seconds before attempting
             to reconnect after an unexpected disconnection. Defaults to 5.
         max_retries (int|None, optional): Maximum number of reconnection
@@ -78,15 +102,27 @@ class Streaming:
         # cache the commonly used app route and token key to simplify lookups
         self.app_route = self.central_conn._app_routes["new_central"]
         self.token_key = self.app_route["token_key"]
-        all_events = {e for evts in SUPPORTED_EVENTS.values() for e in evts}
-        if event not in all_events:
+        routes = {}
+        duplicates = set()
+        for service, versions in SUPPORTED_EVENTS.items():
+            for version, events in versions.items():
+                for event_name, decoder in events.items():
+                    if event_name in routes:
+                        duplicates.add(event_name)
+                    else:
+                        routes[event_name] = (service, version, decoder)
+
+        if duplicates:
             raise ValueError(
-                f"Unsupported event: {event}. Supported events: {sorted(all_events)}"
+                f"Duplicate streaming event names: {sorted(duplicates)}"
             )
+        if event not in routes:
+            raise ValueError(
+                f"Unsupported event: {event}. Supported events: {sorted(routes)}"
+            )
+
         self.endpoint = event
-        self.decoder = next(
-            evts[event] for evts in SUPPORTED_EVENTS.values() if event in evts
-        )
+        self.service, self.version, self.decoder = routes[event]
         self.reconnect_delay = reconnect_delay
         self.max_retries = max_retries
         self.logger = central_conn.logger
@@ -242,9 +278,9 @@ class Streaming:
         """Build the WebSocket Secure (WSS) URL for the configured event.
 
         The URL is constructed using the Central base URL from the
-        connection object and the event-specific endpoint. If filters
-        are configured, they are appended as the ``event-types`` query
-        parameter.
+        connection object and service/version metadata from the selected
+        registry route. If filters are configured, they are appended as
+        the ``event-types`` query parameter.
 
         Returns:
             str: Fully qualified WSS URL for the streaming endpoint.
@@ -252,12 +288,9 @@ class Streaming:
         base_url = self.app_route["base_url"].rstrip("/")
         # Strip any scheme so we can always prefix with wss://
         host = base_url.replace("https://", "", 1).replace("http://", "", 1)
-        service = next(
-            svc
-            for svc, evts in SUPPORTED_EVENTS.items()
-            if self.endpoint in evts
+        url = (
+            f"wss://{host}/{self.service}/{self.version}/{self.endpoint}"
         )
-        url = f"wss://{host}/{service}/{VERSION}/{self.endpoint}"
         if self.filters:
             query_filter = urlencode({"event-types": self.filters})
             url = f"{url}?{query_filter}"
