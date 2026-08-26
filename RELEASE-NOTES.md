@@ -1,3 +1,22 @@
+# 2.0a25
+
+This release expands Streaming API support for client, switch, and alert events, and improves profile initialization with configurable API paths.
+
+### New Features
+
+- **Expanded Streaming API Support**
+  - Added support & decoders for clients, switch, and alert streaming topics.
+  - Streaming WebSocket URLs now resolve the appropriate service path and API version for each supported event topic.
+  - Updated Streaming API documentation with the complete supported-topic list.
+
+### Improvements
+
+- **Profile Path Initialization**
+  - `Profiles` now accepts an optional `path` parameter during initialization.
+  - When a profile name is supplied, the path is normalized to include the URL-encoded name when required.
+
+Full Changelog: [v2.0a24...v2.0a25](https://github.com/aruba/pycentral/compare/v2.0a24...v2.0a25)
+
 # 2.0a24
 
 This release adds support for Central On-Prem (3.x) deployments.
