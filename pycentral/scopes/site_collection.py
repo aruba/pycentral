@@ -5,8 +5,8 @@ from ..utils import SCOPE_URLS, generate_url
 from ..utils.scope_utils import (
     set_attributes,
     get_scope_element,
+    rename_keys,
 )
-from .scope_maps import ScopeMaps
 from .site import Site
 from ..exceptions import ParameterError
 from .scope_base import ScopeBase
@@ -29,8 +29,6 @@ API_ATTRIBUTE_MAPPING = {
 
 REQUIRED_ATTRIBUTES = ["name", "description"]
 
-scope_maps = ScopeMaps()
-
 
 class Site_Collection(ScopeBase):
     """This class holds site collection and all of its attributes & related methods."""
@@ -51,7 +49,9 @@ class Site_Collection(ScopeBase):
             ValueError: If unexpected or missing attributes are provided
         """
         if from_api:
-            collection_attributes = self.__rename_keys(collection_attributes)
+            collection_attributes = rename_keys(
+                collection_attributes, API_ATTRIBUTE_MAPPING
+            )
         else:
             valid_attributes = REQUIRED_ATTRIBUTES + ["sites"]
             for attribute in collection_attributes:
@@ -173,7 +173,9 @@ class Site_Collection(ScopeBase):
                 f"Unable to fetch site collection {self.get_name()} from Central"
             )
         else:
-            collection_attributes = self.__rename_keys(site_collection_data)
+            collection_attributes = rename_keys(
+                site_collection_data, API_ATTRIBUTE_MAPPING
+            )
             set_attributes(
                 obj=self,
                 attributes_dict=collection_attributes,
@@ -217,7 +219,9 @@ class Site_Collection(ScopeBase):
                 "Unable to upate site collection as it could not be found in Central."
             )
 
-        collection_attributes = self.__rename_keys(site_collection_data)
+        collection_attributes = rename_keys(
+            site_collection_data, API_ATTRIBUTE_MAPPING
+        )
 
         object_attributes = {
             key: getattr(self, key) for key in API_ATTRIBUTE_MAPPING.values()
@@ -263,10 +267,10 @@ class Site_Collection(ScopeBase):
 
         site_collection_deletion_status = False
         api_method = "DELETE"
-        api_path = generate_url(SCOPE_URLS["SITE_COLLECTION"])
-        api_params = {"scopeId": self.get_id()}
+        api_path = generate_url(SCOPE_URLS["SITE_COLLECTION_BULK"])
+        api_data = {"items": [{"id": str(self.get_id())}]}
         resp = self.central_conn.command(
-            api_method=api_method, api_path=api_path, api_params=api_params
+            api_method=api_method, api_path=api_path, api_data=api_data
         )
         if resp["code"] == 200:
             self.id = None
@@ -277,7 +281,7 @@ class Site_Collection(ScopeBase):
             )
         else:
             self.central_conn.logger.error(
-                f"Failed to delete site collection {self.get_name()}.\n Error message - {resp['msg']}"
+                f"Failed to delete site collection {self.get_name()} (remove its sites first if any remain).\n Error message - {resp['msg']}"
             )
         return site_collection_deletion_status
 
@@ -315,7 +319,7 @@ class Site_Collection(ScopeBase):
         )
         if resp["code"] == 200 and len(resp["msg"]["items"]) == len(site_ids):
             self.central_conn.logger.info(
-                f"Successfully associated site(s) {', '.join([str(site.name) for site in sites])} to site collection {self.name}"
+                f"Successfully associated site(s) {', '.join(str(getattr(site, 'name', site)) for site in sites)} to site collection {self.name}"
             )
             self.get()
             for site in sites:
@@ -323,14 +327,14 @@ class Site_Collection(ScopeBase):
                     self.add_site(site_id=site.get_id())
                     site.add_site_collection(
                         site_collection_id=self.get_id(),
-                        site_collection_name=self.get_name,
+                        site_collection_name=self.get_name(),
                     )
                 elif isinstance(site, int):
                     self.add_site(site_id=site)
             return True
         else:
             self.central_conn.logger.error(
-                f"Failed to associate site(s) {', '.join([str(site.name) for site in sites])} to site collection {self.name}.\n Error message - {resp['msg']}"
+                f"Failed to associate site(s) {', '.join(str(getattr(site, 'name', site)) for site in sites)} to site collection {self.name}.\n Error message - {resp['msg']}"
             )
             return False
 
@@ -357,13 +361,13 @@ class Site_Collection(ScopeBase):
             raise ParameterError(
                 "sites parameter should only be a list of type Site or int"
             )
-        api_params = {"siteIds": site_ids}
+        api_params = {"site-id": ",".join(site_ids)}
         resp = self.central_conn.command(
             api_method=api_method, api_path=api_path, api_params=api_params
         )
         if resp["code"] == 200 and len(resp["msg"]["items"]) == len(site_ids):
             self.central_conn.logger.info(
-                f"Successfully unassociated site(s) {', '.join([str(site.name) for site in sites])} from site collection {self.name}"
+                f"Successfully unassociated site(s) {', '.join(str(getattr(site, 'name', site)) for site in sites)} from site collection {self.name}"
             )
             self.get()
             for site in sites:
@@ -375,7 +379,7 @@ class Site_Collection(ScopeBase):
             return True
         else:
             self.central_conn.logger.error(
-                f"Failed to unassociate site(s) {', '.join([str(site.name) for site in sites])} to site collection {self.name}.\n Error message - {resp['msg']}"
+                f"Failed to unassociate site(s) {', '.join(str(getattr(site, 'name', site)) for site in sites)} to site collection {self.name}.\n Error message - {resp['msg']}"
             )
             return False
 
@@ -414,37 +418,6 @@ class Site_Collection(ScopeBase):
             (str): String representation of this class
         """
         return f"Site Collection ID - {self.get_id()}, Site Collection Name - {self.get_name()}"
-
-    def __rename_keys(self, api_attributes):
-        """Renames the keys of the site collection attributes from the API response.
-
-        Args:
-            api_attributes (dict): Site collection attributes from Central API Response
-
-        Returns:
-            (dict): Renamed dictionary of site collection attributes mapped to object attributes
-
-        Raises:
-            ValueError: If unknown attribute is found in API response
-        """
-        extra_keys = ["type", "scopeId"]
-        for key in extra_keys:
-            if key in extra_keys:
-                del api_attributes[key]
-
-        integer_attributes = ["id", "siteCount", "deviceCount"]
-        renamed_dict = {}
-        for key, value in api_attributes.items():
-            new_key = API_ATTRIBUTE_MAPPING.get(key)
-            if new_key:
-                if key in integer_attributes:
-                    value = int(value)
-                renamed_dict[new_key] = value
-            else:
-                raise ValueError(
-                    f"Unknown attribute {key} found in API response"
-                )
-        return renamed_dict
 
     def __generate_api_body(self):
         """Returns the dictionary of site collection attributes needed for making API calls.

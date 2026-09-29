@@ -3,13 +3,10 @@
 
 from pycentral.new_monitoring.devices import MonitoringDevices
 from .scope_base import ScopeBase
-from .scope_maps import ScopeMaps
-from ..utils.scope_utils import fetch_attribute
+from ..utils.scope_utils import fetch_attribute, rename_keys
 from ..utils.constants import SUPPORTED_CONFIG_PERSONAS
 from ..utils.troubleshooting_utils import TROUBLESHOOTING_METHOD_DEVICE_MAPPING
 from ..troubleshooting import Troubleshooting
-
-scope_maps = ScopeMaps()
 
 CX_API_ENDPOINT = "cx"
 AOS_S_API_ENDPOINT = "aos-s"
@@ -184,7 +181,7 @@ class Device(ScopeBase):
         Args:
             raw_api_dict (dict): Raw dict from the Central API response
         """
-        device_attributes = self.__rename_keys(raw_api_dict, API_ATTRIBUTE_MAPPING)
+        device_attributes = rename_keys(raw_api_dict, API_ATTRIBUTE_MAPPING)
         device_attributes["assigned_profiles"] = []
         for key, value in device_attributes.items():
             setattr(self, key, value)
@@ -201,29 +198,6 @@ class Device(ScopeBase):
                 f"persona. 'config_persona' will not be set for device "
                 f"{self.get_serial()}."
             )
-
-    def __rename_keys(self, api_dict, api_attribute_mapping):
-        """Renames the keys of the attributes from the API response.
-
-        Args:
-            api_dict (dict): Dict from Central API Response
-            api_attribute_mapping (dict): Dict mapping API keys to object attributes
-
-        Returns:
-            (dict): Renamed dictionary of object attributes
-        """
-        integer_attributes = {"scopeId"}
-        renamed_dict = {}
-        for key, value in api_dict.items():
-            new_key = api_attribute_mapping.get(key)
-            if not new_key:
-                continue  # Skip unknown keys
-            if key in integer_attributes and value is not None:
-                value = int(value)
-            if key == "isProvisioned":
-                value = True if value == "Yes" else False
-            renamed_dict[new_key] = value
-        return renamed_dict
 
     def ping_test(self, destination, **kwargs):
         """Initiates a ping test to the specified destination from the device.

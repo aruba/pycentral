@@ -6,6 +6,7 @@ from pycentral.utils import profile_utils, url_utils
 from pycentral import NewCentralBase
 from copy import deepcopy
 import re
+import urllib.parse
 
 
 class Profiles:
@@ -13,7 +14,7 @@ class Profiles:
         self,
         name=None,
         central_conn=None,
-        config_dict=dict(),
+        config_dict=None,
         path=None,
         local=None,
     ):
@@ -27,16 +28,20 @@ class Profiles:
                 object.
             config_dict (dict, optional): Dictionary containing API keys & values
                 used to configure the configuration profile.
-            local (dict, optional): A dictionary containing keys scope-id type
-                int and device-function type str required to designate a local profile.
-            path (str, optional): The API path for the profile, omitting base_url/network-config/v1alpha1/.
+            local (dict, optional): Local profile attributes, e.g.
+                {"scope_id": 12345, "device_function": "CAMPUS_AP"}. "persona"
+                is a deprecated alias for "device_function".
+            path (str, optional): The API path for the profile, omitting
+                base_url, ex: "layer2-vlan". If name is provided it is
+                URL-encoded and appended as the last path segment, the same
+                way as url_utils.generate_url(endpoint, identifier=name).
 
 
         Raises:
             ParameterError: If name is provided but not a valid string.
         """
         # Initialize attrs that will be later defined by child
-        self.config_dict = config_dict
+        self.config_dict = {} if config_dict is None else config_dict
         self.object_data = dict()
 
         if name and isinstance(name, str):
@@ -48,18 +53,10 @@ class Profiles:
 
         if path and isinstance(path, str):
             if name:
-                # URL encode name to handle spaces
-                formatted_name = name.replace(" ", "%20")
-                if path.endswith(name):
-                    # Replace name in path with URL encoded name
-                    path = path[: -len(name)] + formatted_name
-
-                # Append name to path if not already present
-                if not path.endswith(f"/{formatted_name}"):
-                    if path.endswith("/"):
-                        path = f"{path}{formatted_name}"
-                    else:
-                        path = f"{path}/{formatted_name}"
+                # Append URL-encoded name, replacing it if already present
+                identifier = urllib.parse.quote(name, safe="")
+                pattern = f"/({re.escape(name)}|{re.escape(identifier)})$"
+                path = f"{re.sub(pattern, '', path.rstrip('/'))}/{identifier}"
             self.set_path(path)
         elif path and not isinstance(path, str):
             raise ParameterError(
@@ -77,11 +74,8 @@ class Profiles:
                 "No Central connection provided - set central_conn before making API calls"
             )
 
-        if local and profile_utils.validate_local(local):
-            # Sample Local Data {"scope-id": 12345, "device-function": "CAMPUS_AP"}
-            self.local = profile_utils.validate_local(local)
-        else:
-            self.local = None
+        # Sample Local Data {"scope_id": 12345, "device_function": "CAMPUS_AP"}
+        self.local = profile_utils.validate_local(local) or None
 
     def get_resource_str(self):
         """Return the resource string for the profile.
@@ -160,16 +154,15 @@ class Profiles:
         Returns:
             (str|None): The bulk key if set, otherwise None.
         """
-        if "bulk_key" in self.object_data:
-            return self.object_data["bulk_key"]
-        return None
+        return self.object_data.get("bulk_key")
 
     def set_path(self, path):
         """Set the URL path for the profile.
 
-        Sets self.object_data['path']. Does NOT include base_url
-        (https://<base_url>.com/) or configuration prefix
-        ("network-config/v1alpha1/").
+        Sets self.object_data['path']. Any base_url (https://<base_url>.com/)
+        is stripped. A path already starting with a configuration prefix
+        (ex: "network-config/v1/" or "network-config/v1alpha1/") is kept as
+        is, otherwise url_utils.get_prefix() is prepended.
 
         Args:
             path (str): URL path for the profile, ex: "layer2-vlan".
@@ -179,14 +172,9 @@ class Profiles:
         """
         # Remove any URL prefix matching https://.*\.com
         if path:
-            path = re.sub(r"https://.*?\.com", "", path)
-            if path.startswith("/"):
-                path = path[1:]
-            # Include NETWORKING_PREFIX if present
-            prefix = url_utils.get_prefix()
-            if prefix not in path:
-                path = prefix + path
-            # path = re.sub(prefix, "", path)
+            path = re.sub(r"https://.*?\.com", "", path).lstrip("/")
+            if not re.match(r"network-config/v\d+\w*/", path):
+                path = url_utils.get_prefix() + path
             self.object_data["path"] = path
         else:
             raise ParameterError(
@@ -200,9 +188,7 @@ class Profiles:
         Returns:
             (str|None): The URL path if set, otherwise None.
         """
-        if "path" in self.object_data:
-            return self.object_data["path"]
-        return None
+        return self.object_data.get("path")
 
     def set_central_conn(self, central_conn):
         """Set the central connection object for the profile.
@@ -229,8 +215,8 @@ class Profiles:
                 otherwise None.
         """
 
-        if not hasattr(self, "central_conn") or not self.central_conn:
-            self.central_conn.logger.warning(
+        if not getattr(self, "central_conn", None):
+            NewCentralBase.set_logger(NewCentralBase, "INFO").warning(
                 "No Central connection provided - set central_conn before making API calls"
             )
             return None
@@ -264,7 +250,7 @@ class Profiles:
         Raises:
             ParameterError: If config_key is not provided or not a valid string.
         """
-        if not config_key and isinstance(config_key) is not str:
+        if not config_key or not isinstance(config_key, str):
             raise ParameterError(
                 "config_key must be a valid string containing the key to update"
             )
@@ -274,13 +260,15 @@ class Profiles:
     def set_local_parameters(self, local):
         """Set the local profile parameters for the object.
 
-        Dict provided must have the keys scope-id type int and device-function type str.
-
         Args:
-            local (dict): A dictionary containing keys scope-id type int and device-function
-                type str required to designate a local profile.
+            local (dict): Local profile attributes, e.g.
+                {"scope_id": 12345, "device_function": "CAMPUS_AP"}. "persona"
+                is a deprecated alias for "device_function".
+
+        Raises:
+            ParameterError: If local is invalid.
         """
-        self.local = profile_utils.validate_local(local)
+        self.local = profile_utils.validate_local(local) or None
 
     def get_local_parameters(self):
         """Return required keys/values for local profile API calls.
@@ -289,9 +277,7 @@ class Profiles:
             (dict|None): Local attributes dictionary if self.local is set,
                 otherwise None.
         """
-        if self.local:
-            return profile_utils.validate_local(self.local)
-        return None
+        return dict(self.local) if self.local else None
 
     def _getattrsdict(self, config_attrs):
         """Dynamically retrieve attributes of an object based on provided dictionary.
@@ -339,6 +325,38 @@ class Profiles:
 
             obj.__dict__[k] = v
 
+    def _checked_path(self, operation):
+        """Return self's path after verifying central_conn and path are set.
+
+        Args:
+            operation (str): Operation name used in the error message.
+
+        Returns:
+            (str): The URL path of the profile.
+
+        Raises:
+            VerificationError: If central_conn or path is missing.
+        """
+        if not getattr(self, "central_conn", None) or not self.get_path():
+            raise VerificationError(
+                f"{operation} failed - Required attributes missing in Profile. "
+                "Use Profiles.set_path() and Profiles.set_central_conn() to"
+                " ensure central_conn and path are set."
+            )
+        return self.get_path()
+
+    def _is_bulk(self):
+        """Return True if bulk_key is set and the path does not end with the name.
+
+        Returns:
+            (bool): True if the bulk API should be used.
+        """
+        name = getattr(self, "name", None)
+        last = self.get_path().rsplit("/", 1)[-1]
+        return bool(self.get_bulk_key()) and not (
+            name and last in (name, urllib.parse.quote(name, safe=""))
+        )
+
     def apply(self):
         """Main method used to update or create a Profile.
 
@@ -375,51 +393,17 @@ class Profiles:
         body = dict()
 
         params = self.get_local_parameters()
-
-        if (
-            not hasattr(self, "central_conn")
-            or not self.central_conn
-            and (
-                "path" not in self.object_data.keys()
-                or not self.object_data["path"]
-            )
-        ):
-            raise VerificationError(
-                "Create failed - Required attributes missing in Profile. "
-                "Use Profiles.set_path() and Profiles.set_central_conn() to"
-                " ensure central_conn and path are set."
-            )
-
-        path = self.object_data["path"]
-
-        if not hasattr(self, "central_conn") or not self.central_conn:
-            raise VerificationError(
-                "Create failed - Central connection required but missing in Profile. "
-                "Use Profiles.set_central_conn() to ensure central_conn and path are set."
-            )
+        path = self._checked_path("Create")
 
         if isinstance(self.config_dict, dict):
             body = self.config_dict.copy()
 
-        # Logic for handling bulk profile configuration
-        # Use bulk API endpoint if bulk_key is set and name or identifier is
-        # not provided in the path (single operation)
-        if (
-            "bulk_key" in self.object_data
-            and self.name not in self.get_path()
-            and isinstance(self.config_dict, dict)
-        ):
-            # Bulk API expects a list of dictionaries therefor if config_dict
-            # is a dictionary it's wrapped in a list to be sent
-            body = {self.object_data["bulk_key"]: [self.config_dict.copy()]}
-        elif (
-            "bulk_key" in self.object_data
-            and self.name not in self.get_path()
-            and isinstance(self.config_dict, list)
-        ):
-            # Bulk API expects a list of dictionaries therefore if config_dict
-            # is a list it's left alone
-            body = {self.object_data["bulk_key"]: self.config_dict}
+        # Use the bulk API if bulk_key is set and the path does not end with
+        # the profile name/identifier (single operation). The bulk API
+        # expects a list of dictionaries, so a dict config is wrapped.
+        if self._is_bulk() and isinstance(self.config_dict, (dict, list)):
+            is_list = isinstance(self.config_dict, list)
+            body = {self.get_bulk_key(): self.config_dict if is_list else [body]}
 
         resp = self.central_conn.command(
             "POST", path, api_data=body, api_params=params
@@ -459,34 +443,16 @@ class Profiles:
         """
         result = False
         response = None
-        if (
-            not hasattr(self, "central_conn")
-            or not self.central_conn
-            and (
-                "path" not in self.object_data.keys()
-                or not self.object_data["path"]
-            )
-        ):
-            raise VerificationError(
-                "Get failed - Required attributes missing in Profile. "
-                "Please ensure central_conn and object_data['path'] are set."
-            )
-        # Name / id may need to be appended to path before calling GET
-        path = self.object_data["path"]
+        path = self._checked_path("Get")
         params = self.get_local_parameters()
 
-        # Need to include `view_type` for GET requests
+        # Need to include `view-type` for GET requests
         if params:
-            params.update({"view_type": "LOCAL"})
-
-        if not hasattr(self, "central_conn") or not self.central_conn:
-            raise VerificationError(
-                "Get failed - Central connection required but missing in Profile. "
-                "Please provide a valid Central connection object"
-            )
+            params["view-type"] = "LOCAL"
 
         resp = self.central_conn.command("GET", path, api_params=params)
-        if resp["code"] == 200 and "msg" in resp.keys():
+        # An empty 200 response means the profile does not exist
+        if resp["code"] == 200 and resp.get("msg"):
             self.materialized = True
             result = True
             response = resp["msg"].copy()
@@ -504,6 +470,7 @@ class Profiles:
             return result, response
         else:
             self.materialized = False
+            self.central_conn.logger.warning(f"Profile not found at {path}")
             return result, response
 
     def compare_objects(self, obj1, obj2):
@@ -647,19 +614,12 @@ class Profiles:
         body = None
         # Dictionary to contain differences found for reporting
         diff_dict_list = []
-        path = self.object_data["path"]
+        path = self._checked_path("Update")
         new_config = self.config_dict.copy()
 
         # If update_data provided, merge into new_config taken from self.config_dict
         if update_data:
             new_config.update(update_data)
-
-        # central_conn should be validated in previous self.get() but just in case
-        if not hasattr(self, "central_conn") or not self.central_conn:
-            raise VerificationError(
-                "Update failed - Central connection required but missing in Profile. "
-                "Please provide a valid Central connection object"
-            )
 
         # Check for Central profile
         central_obj = None
@@ -695,11 +655,7 @@ class Profiles:
             if isinstance(new_config, list) and self.get_bulk_key():
                 # If new_config is a list, wrap it in a dict with bulk_key
                 body = {self.get_bulk_key(): new_config}
-            elif (
-                isinstance(new_config, dict)
-                and self.get_bulk_key()
-                and self.name not in self.get_path()
-            ):
+            elif isinstance(new_config, dict) and self._is_bulk():
                 # If new_config is a dict, wrap it in a dict with bulk_key
                 body = {self.get_bulk_key(): [new_config]}
             else:
@@ -733,9 +689,12 @@ class Profiles:
         """Delete a profile from Central.
 
         Returns:
-            (tuple(bool, dict)): Boolean of operation result, and dict of the create API response.
+            (tuple(bool, dict)): Boolean of operation result, and dict of the delete API response.
+
+        Raises:
+            VerificationError: If required attributes are missing.
         """
-        path = self.object_data["path"]
+        path = self._checked_path("Delete")
         params = self.get_local_parameters()
 
         resp = self.central_conn.command(
@@ -755,16 +714,18 @@ class Profiles:
         """Create a configuration profile.
 
         Args:
-            path (str): The API endpoint for request, omitting base_url - it's recommended
-                to use the helper function pycentral.utils.url_utils.generate_url().
+            path (str): The API endpoint for request, omitting base_url - build it with
+                pycentral.utils.url_utils.generate_url(), passing the profile name/id
+                as identifier, e.g. generate_url("layer2-vlan", identifier=100).
+                Omit identifier when using bulk_key.
             config_dict (dict): Dictionary containing API keys & values used to
                 create the configuration profile.
             central_conn (NewCentralBase): Established Central connection object.
             bulk_key (str, optional): The key required to wrap the configurations for
                 multiple profiles for the bulk API - refer to the API reference for valid values.
                 ex: "profile" for DNS, "layer2-vlan" for VLANs, etc.
-            local (dict, optional): A dictionary containing keys scope-id type int and
-                device-function type str required to designate a local profile.
+            local (dict, optional): Local profile attributes, e.g.
+                {"scope_id": 12345, "device_function": "CAMPUS_AP"}.
 
         Returns:
             (tuple(bool, dict)): Boolean of operation result, and dict of the create API response.
@@ -818,13 +779,14 @@ class Profiles:
         """Get existing profile(s) from Central.
 
         Args:
-            path (str): The API endpoint for request, omitting base_url - it's recommended
-                to use the helper function pycentral.utils.url_utils.generate_url(). If
-                the path does not include the profile name/id, the API will return all
-                profiles for that type.
+            path (str): The API endpoint for request, omitting base_url - build it with
+                pycentral.utils.url_utils.generate_url(). Pass the profile name/id as
+                identifier to get one profile, e.g.
+                generate_url("layer2-vlan", identifier=100); without it the API
+                returns all profiles of that type.
             central_conn (NewCentralBase): Established Central connection object.
-            local (dict, optional): A dictionary containing keys scope-id type int and device-function
-                type str required to designate a local profile.
+            local (dict, optional): Local profile attributes, e.g.
+                {"scope_id": 12345, "device_function": "CAMPUS_AP"}.
 
         Returns:
             (tuple(bool, dict)): Boolean of operation result, and dict of the get API response.
@@ -832,9 +794,9 @@ class Profiles:
         # defaults to None if local is not provided
         params = profile_utils.validate_local(local)
 
-        # Need to include `view_type` for GET requests
+        # Need to include `view-type` for GET requests
         if params:
-            params.update({"view_type": "LOCAL"})
+            params["view-type"] = "LOCAL"
 
         resp = central_conn.command("GET", path, api_params=params)
 
@@ -859,16 +821,18 @@ class Profiles:
         """Update a configuration profile.
 
         Args:
-            path (str): The API endpoint for request, omitting base_url - it's recommended
-                to use the helper function pycentral.utils.url_utils.generate_url().
+            path (str): The API endpoint for request, omitting base_url - build it with
+                pycentral.utils.url_utils.generate_url(), passing the profile name/id
+                as identifier, e.g. generate_url("layer2-vlan", identifier=100).
+                Omit identifier when using bulk_key.
             config_dict (dict): Dictionary containing API keys & values used to
                 update the configuration profile.
             central_conn (NewCentralBase): Established Central connection object.
             bulk_key (str, optional): The key required to wrap the configurations for
                 multiple profiles for the bulk API - refer to the API reference for valid values.
                 ex: "profile" for DNS, "layer2-vlan" for VLANs, etc.
-            local (dict): A dictionary containing keys scope-id type int and device-function
-                type str required to designate a local profile.
+            local (dict, optional): Local profile attributes, e.g.
+                {"scope_id": 12345, "device_function": "CAMPUS_AP"}.
 
         Returns:
             (tuple(bool, dict)): Boolean of operation result, and dict of the update API response.
@@ -915,11 +879,12 @@ class Profiles:
         """Delete a configuration profile.
 
         Args:
-            path (str): The API endpoint for request, omitting base_url - it's recommended
-                to use the helper function pycentral.utils.url_utils.generate_url().
+            path (str): The API endpoint for request, omitting base_url - build it with
+                pycentral.utils.url_utils.generate_url(), passing the profile name/id
+                as identifier, e.g. generate_url("layer2-vlan", identifier=100).
             central_conn (NewCentralBase): Established Central connection object.
-            local (dict, optional): A dictionary containing keys scope-id type int and device-function
-                type str required to designate a local profile.
+            local (dict, optional): Local profile attributes, e.g.
+                {"scope_id": 12345, "device_function": "CAMPUS_AP"}.
 
         Returns:
             (tuple(bool, dict)): Boolean of operation result, and dict of the delete API response.
@@ -937,9 +902,6 @@ class Profiles:
         # defaults to None if local is not provided
         params = profile_utils.validate_local(local)
 
-        path_split = path.split("/")
-        resource = path_split[len(path_split) - 2]
-
         resp = central_conn.command(
             "DELETE", path, api_params=params, headers={"Accept": "*/*"}
         )
@@ -947,7 +909,7 @@ class Profiles:
         if resp["code"] == 200:
             result = True
             central_conn.logger.info(
-                f"{resource} profile successfully deleted!"
+                f"{path} profile successfully deleted!"
             )
         else:
             error = resp["msg"]
@@ -966,14 +928,15 @@ class Profiles:
             bulk_key (str): The key required to wrap the configurations for
                 multiple profiles for the bulk API - refer to the API reference for valid values.
                 ex: "profile" for DNS, "layer2-vlan" for VLANs, etc.
-            path (str): The API endpoint for request, omitting base_url - it's recommended
-                to use the helper function pycentral.utils.url_utils.generate_url().
+            path (str): The API endpoint for request, omitting base_url - build it with
+                pycentral.utils.url_utils.generate_url() without identifier,
+                e.g. generate_url("layer2-vlan").
             central_conn (NewCentralBase): Established Central connection object.
             list_dict (list, optional): List of profile configuration dictionaries.
             list_obj (list, optional): List of Profiles objects containing the config_dict
                 attribute.
-            local (dict, optional): A dictionary containing keys scope-id type int and device-function
-                type str required to designate a local profile.
+            local (dict, optional): Local profile attributes, e.g.
+                {"scope_id": 12345, "device_function": "CAMPUS_AP"}.
 
         Returns:
             (tuple(bool, dict)): Boolean of operation result, and dict of the create API response.
@@ -1036,13 +999,14 @@ class Profiles:
             bulk_key (str): The key required to wrap the configurations for
                 multiple profiles for the bulk API - refer to the API reference for valid values.
                 ex: "profile" for DNS, "layer2-vlan" for VLANs, etc.
-            path (str): The API endpoint for request, omitting base_url - it's recommended
-                to use the helper function pycentral.utils.url_utils.generate_url().
+            path (str): The API endpoint for request, omitting base_url - build it with
+                pycentral.utils.url_utils.generate_url() without identifier,
+                e.g. generate_url("layer2-vlan").
             central_conn (NewCentralBase): Established Central connection object.
             list_dict (list, optional): List of profile configuration dictionaries.
             list_obj (list, optional): List of Profiles objects containing the config_dict attribute.
-            local (dict): A dictionary containing keys scope-id type int and device-function
-                type str required to designate a local profile.
+            local (dict, optional): Local profile attributes, e.g.
+                {"scope_id": 12345, "device_function": "CAMPUS_AP"}.
 
         Returns:
             (tuple(bool, dict)): Boolean of operation result, and dict of the update API response.
@@ -1092,11 +1056,12 @@ class Profiles:
         """Delete multiple configuration profiles.
 
         Args:
-            path_list (list): List of API paths as type string for requests. It's recommended
-                to use the helper function pycentral.utils.url_utils.generate_url().
+            path_list (list): List of API paths as type string for requests. Build each with
+                pycentral.utils.url_utils.generate_url(), passing the profile name/id
+                as identifier, e.g. generate_url("layer2-vlan", identifier=100).
             central_conn (NewCentralBase): Established Central connection object.
-            local (dict): A dictionary containing keys scope-id type int and device-function
-                type str required to designate a local profile.
+            local (dict, optional): Local profile attributes, e.g.
+                {"scope_id": 12345, "device_function": "CAMPUS_AP"}.
             error_on_fail (bool, optional): Flag to indicate whether to log an error
                 with the logger on failure. When flag is set True each delete operation
                 that fails will log the error message from the API response with the
@@ -1120,18 +1085,16 @@ class Profiles:
         params = profile_utils.validate_local(local)
 
         for path in path_list:
-            path_split = path.split("/")
-            resource = path_split[len(path_split) - 2]
             resp = central_conn.command(
                 "DELETE", path, api_params=params, headers={"Accept": "*/*"}
             )
             if resp["code"] == 200:
-                central_conn.logger.info(f"{resource} successfully deleted!")
+                central_conn.logger.info(f"{path} successfully deleted!")
             elif error_on_fail:
                 error = resp["msg"]
                 err_str = f"Error-message -> {error}"
                 central_conn.logger.error(
-                    f"Failed to delete {resource} . {err_str}"
+                    f"Failed to delete {path} . {err_str}"
                 )
             else:
                 failures.append(path)

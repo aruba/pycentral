@@ -3,26 +3,23 @@
 
 from .scope_base import ScopeBase
 from ..utils.scope_utils import (
-    fetch_attribute,
     get_scope_elements,
     get_all_scope_elements,
     DEFAULT_LIMIT,
+    SUPPORTED_SCOPES,
+    is_supported_scope,
     validate_find_scope_elements,
     lookup_in_map,
 )
 from .device import Device
 from .site import Site
 from .site_collection import Site_Collection
-from .scope_maps import ScopeMaps
+from .scope_maps import get_config_assignments, get_scope_maps
 from .device_group import Device_Group
 from ..utils import SCOPE_URLS, generate_url
+from ..utils.profile_utils import _resolve_device_function, _warn_deprecated
 from ..exceptions import ParameterError
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
-SUPPORTED_SCOPES = ["site", "site_collection", "device", "device_group"]
-
-
-scope_maps = ScopeMaps()
 
 
 class Scopes(ScopeBase):
@@ -88,8 +85,8 @@ class Scopes(ScopeBase):
                         f"Error fetching {futures[future]}: {e}"
                     )
 
-            self._correlate_scopes()
             self.get_id()
+            self._correlate_scopes()
             self.central_conn.logger.info(
                 "Mapping configuration profiles to scopes..."
             )
@@ -173,7 +170,7 @@ class Scopes(ScopeBase):
         """Performs GET calls to retrieve all the device groups from Central.
 
         Returns:
-            (list): List of device group dictionaries
+            (list): List of Device_Group objects
         """
         device_groups_list = get_all_scope_elements(
             obj=self, scope="device_group"
@@ -186,48 +183,30 @@ class Scopes(ScopeBase):
             )
             for device_group in device_groups_list
         ]
-        return device_groups_list
+        return self.device_groups
 
     def get_id(self):
         """Returns the ID of the Global scope.
 
-        If the ID hasn't been set, the function will fetch the ID from Central.
+        If the ID hasn't been set, it is fetched from Central (GET global).
 
         Returns:
             (int or None): ID of global scope, or None if unable to fetch
         """
-        global_scope_id = None
-        if self.id is not None:
-            global_scope_id = fetch_attribute(self, "id")
-        elif len(self.sites) > 0:
-            sample_site = self.sites[0]
-            heirarchy = None
-            heirarchy = self.get_hierarchy(
-                scope="site", id=sample_site.get_id()
+        if self.id is None:
+            resp = self.central_conn.command(
+                api_method="GET", api_path=generate_url(SCOPE_URLS["GLOBAL"])
             )
-            if heirarchy is not None:
-                org_data = None
-                heirarchy_data = heirarchy[0]["hierarchy"]
-                for scope in heirarchy_data:
-                    if scope["scopeType"] == "org":
-                        org_data = scope
-                        break
-                if org_data is not None:
-                    global_scope_id = int(org_data["scopeId"])
-                    self.id = global_scope_id
-                    self._lookup_maps["id"].update({global_scope_id: self})
-                    self.central_conn.logger.info(
-                        "Global scope ID set successfully."
-                    )
-                else:
-                    self.central_conn.logger.error(
-                        "Unable to get global scope ID"
-                    )
-        else:
-            self.central_conn.logger.error(
-                "Unable to get global scope ID without having 1 site in the central account."
-            )
-        return global_scope_id
+            if resp["code"] == 200:
+                self.id = int(resp["msg"]["scopeId"])
+                self.central_conn.logger.info(
+                    "Global scope ID set successfully."
+                )
+            else:
+                self.central_conn.logger.error(
+                    f"Unable to get global scope ID. Error message - {resp['msg']}"
+                )
+        return self.id
 
     def get_sites(
         self, limit=DEFAULT_LIMIT, offset=0, filter_field="", sort=""
@@ -287,23 +266,27 @@ class Scopes(ScopeBase):
         )
 
     def _correlate_scopes(self):
-        """Correlates sites with site collections and devices with sites using internal maps."""
+        """Rebuilds lookup maps and correlates sites with site collections and devices with sites & device groups."""
         self._update_lookup_map()
+        for site_collection in self.site_collections:
+            site_collection.sites = []
+        for element in self.sites + self.device_groups:
+            element.devices = []
 
         for site in self.sites:
-            collection_id = fetch_attribute(site, "site_collection_id")
+            collection_id = getattr(site, "site_collection_id", None)
             if collection_id and int(collection_id) in self._lookup_maps["id"]:
                 self._lookup_maps["id"][int(collection_id)].add_site(
                     site.get_id()
                 )
 
         for device in self.devices:
-            site_id = fetch_attribute(device, "site_id")
+            site_id = getattr(device, "site_id", None)
             if site_id and int(site_id) in self._lookup_maps["id"]:
                 self._lookup_maps["id"][int(site_id)].devices.append(
                     device.get_id()
                 )
-            group_id = fetch_attribute(device, "group_id")
+            group_id = getattr(device, "group_id", None)
             if group_id and int(group_id) in self._lookup_maps["id"]:
                 self._lookup_maps["id"][int(group_id)].devices.append(
                     device.get_id()
@@ -323,19 +306,12 @@ class Scopes(ScopeBase):
         Returns:
             (Site_Collection or list or None): Found site collection(s) or None if not found
         """
-        site_collections = self._find_scope_element(
+        return self._find_or_refresh(
+            self.get_all_site_collections,
             ids=site_collection_ids,
             names=site_collection_names,
             scope="site_collection",
         )
-        if not site_collections:
-            self.get_all_sites()
-            site_collections = self._find_scope_element(
-                ids=site_collection_ids,
-                names=site_collection_names,
-                scope="site_collection",
-            )
-        return site_collections
 
     def find_site(self, site_ids=None, site_names=None):
         """Returns the site based on the provided parameters.
@@ -349,15 +325,9 @@ class Scopes(ScopeBase):
         Returns:
             (Site or list or None): Found site(s) or None if not found
         """
-        sites = self._find_scope_element(
-            ids=site_ids, names=site_names, scope="site"
+        return self._find_or_refresh(
+            self.get_all_sites, ids=site_ids, names=site_names, scope="site"
         )
-        if not sites:
-            self.get_all_sites()
-            sites = self._find_scope_element(
-                ids=site_ids, names=site_names, scope="site"
-            )
-        return sites
 
     def find_device(
         self, device_ids=None, device_names=None, device_serials=None
@@ -374,21 +344,13 @@ class Scopes(ScopeBase):
         Returns:
             (Device or list or None): Found device(s) or None if not found
         """
-        devices = self._find_scope_element(
+        return self._find_or_refresh(
+            self.get_all_devices,
             ids=device_ids,
             names=device_names,
             serials=device_serials,
             scope="device",
         )
-        if not devices:
-            self.get_all_devices()
-            devices = self._find_scope_element(
-                ids=device_ids,
-                names=device_names,
-                serials=device_serials,
-                scope="device",
-            )
-        return devices
 
     def find_device_group(
         self,
@@ -406,19 +368,30 @@ class Scopes(ScopeBase):
         Returns:
             (Device_Group or list or None): Found device group(s) or None if not found
         """
-        device_groups = self._find_scope_element(
+        return self._find_or_refresh(
+            self.get_all_device_groups,
             ids=device_group_ids,
             names=device_group_names,
             scope="device_group",
         )
-        if not device_groups:
-            self.get_all_device_groups()
-            device_groups = self._find_scope_element(
-                ids=device_group_ids,
-                names=device_group_names,
-                scope="device_group",
-            )
-        return device_groups
+
+    def _find_or_refresh(self, refresh, **kwargs):
+        """Finds scope elements; on a miss re-fetches that scope from Central,
+        re-correlates and retries once.
+
+        Args:
+            refresh (callable): Method that re-fetches the scope's elements
+            **kwargs: Arguments for _find_scope_element
+
+        Returns:
+            (object or list or None): Found element(s) or None if not found
+        """
+        found = self._find_scope_element(**kwargs)
+        if not found:
+            refresh()
+            self._correlate_scopes()
+            found = self._find_scope_element(**kwargs)
+        return found
 
     def _find_scope_element(self, ids=None, names=None, serials=None, scope=""):
         """Helper function to find scope elements based on provided parameters.
@@ -497,20 +470,19 @@ class Scopes(ScopeBase):
             }
 
     def _update_lookup_map(self):
-        """Updates the lookup maps for IDs and serials."""
-        # if key is None:
-        for element_list in [
-            self.sites,
-            self.site_collections,
-            self.devices,
-            self.device_groups,
-        ]:
-            self._lookup_maps["id"].update(
-                {element.get_id(): element for element in element_list}
-            )
-        self._lookup_maps["serial"].update(
-            {device.get_serial(): device for device in self.devices}
-        )
+        """Rebuilds the lookup maps for IDs and serials from the current scope lists."""
+        self._lookup_maps["id"] = {
+            element.get_id(): element
+            for element in self.sites
+            + self.site_collections
+            + self.devices
+            + self.device_groups
+        }
+        if self.id is not None:
+            self._lookup_maps["id"][self.id] = self
+        self._lookup_maps["serial"] = {
+            device.get_serial(): device for device in self.devices
+        }
 
     def add_sites_to_site_collection(
         self,
@@ -582,7 +554,7 @@ class Scopes(ScopeBase):
             api_method = "DELETE"
             api_path = generate_url(SCOPE_URLS["REMOVE_SITE_FROM_COLLECTION"])
             api_params = {
-                "siteIds": ",".join([str(site.get_id()) for site in sites])
+                "site-id": ",".join(str(site.get_id()) for site in sites)
             }
             resp = self.central_conn.command(
                 api_method=api_method, api_path=api_path, api_params=api_params
@@ -679,22 +651,13 @@ class Scopes(ScopeBase):
             site_id = site.get_id()
             site_deletion_status = site.delete()
             if site_deletion_status:
-                self._remove_scope_element(
-                    scope="site", element_id=site.get_id()
-                )
+                self._remove_scope_element(scope="site", element_id=site_id)
                 if site.site_collection_id:
                     site_collection = self.find_site_collection(
                         site_collection_ids=site.site_collection_id
                     )
-                    site_collection.remove_site(site_id)
-
-            else:
-                error_resp = site_deletion_status
-                self.central_conn.logger.error(
-                    "Unable to delete site. "
-                    + "Error-message -> "
-                    + error_resp["msg"]["message-code"][0]["code"]
-                )
+                    if site_collection:
+                        site_collection.remove_site(site_id)
         else:
             self.central_conn.logger.error(
                 "Please provide a valid site id or name to be deleted."
@@ -711,25 +674,11 @@ class Scopes(ScopeBase):
         Returns:
             (bool): True if successful, False otherwise
         """
-        if scope not in SUPPORTED_SCOPES:
-            self.central_conn.logger.error(
-                "Unknown scope provided. Please provide one of the supported scopes - "
-                ", ".join(SUPPORTED_SCOPES)
-            )
-            return False
-        if scope == "site":
-            element_list = self.sites
-        elif scope == "site_collection":
-            element_list = self.site_collections
-
-        index = None
-        for id_element, element in enumerate(element_list):
+        element_list = getattr(self, scope + "s")
+        for index, element in enumerate(element_list):
             if element.get_id() == element_id:
-                index = id_element
-                break
-        if index is not None:
-            element_list.pop(index)
-            return True
+                element_list.pop(index)
+                return True
         return False
 
     def create_site_collection(
@@ -825,18 +774,11 @@ class Scopes(ScopeBase):
                         + f"{site_collection.get_name()}."
                     )
                     return site_unassociated_status
+            site_collection_id = site_collection.get_id()
             site_collection_deletion_status = site_collection.delete()
             if site_collection_deletion_status:
                 self._remove_scope_element(
-                    scope="site_collection",
-                    element_id=site_collection.get_id(),
-                )
-            else:
-                error_resp = site_collection_deletion_status
-                self.central_conn.logger.error(
-                    "Unable to delete site collection. "
-                    + "Error-message -> "
-                    + error_resp["msg"]["message-code"][0]["code"]
+                    scope="site_collection", element_id=site_collection_id
                 )
         else:
             self.central_conn.logger.error(
@@ -855,11 +797,7 @@ class Scopes(ScopeBase):
         Returns:
             (dict or None): Hierarchy of the specified element, None if unable to fetch
         """
-        if scope not in SUPPORTED_SCOPES:
-            self.central_conn.logger.error(
-                "Unknown scope provided. Please provide one of the supported scopes - "
-                ", ".join(SUPPORTED_SCOPES)
-            )
+        if not is_supported_scope(self, scope):
             return None
 
         scope_id = None
@@ -875,7 +813,7 @@ class Scopes(ScopeBase):
                     site_collection_names=name
                 )
                 if site_collection is not None:
-                    scope_id = site.get_id()
+                    scope_id = site_collection.get_id()
             if not scope_id:
                 self.central_conn.logger.error(
                     f"Unable to find id of specified scope element with name of {name}"
@@ -884,18 +822,20 @@ class Scopes(ScopeBase):
 
         api_method = "GET"
         api_path = generate_url(SCOPE_URLS["HIERARCHY"])
-        api_params = {"scopeId": scope_id, "scopeType": scope.lower()}
+        # v1 hierarchy types verified live; device groups are "device_collection"
+        hierarchy_type = {"device_group": "device_collection"}.get(scope, scope)
+        api_params = {"id": str(scope_id), "type": hierarchy_type}
         resp = self.central_conn.command(
             api_method=api_method, api_path=api_path, api_params=api_params
         )
         if resp["code"] == 200:
             self.central_conn.logger.info(
-                f"Successfully fetched scope heirarchy of {scope} with id {id}"
+                f"Successfully fetched scope hierarchy of {scope} with id {scope_id}"
             )
             return resp["msg"]["items"]
         else:
             self.central_conn.logger.error(
-                f"Unable to fetch scope heirarchy of {scope} with id {id}"
+                f"Unable to fetch scope hierarchy of {scope} with id {scope_id}. Error message - {resp['msg']}"
             )
             return None
 
@@ -908,139 +848,141 @@ class Scopes(ScopeBase):
         return f"Global ID - {self.id}"
 
     def get_scope_profiles(self):
-        """Fetches all configuration profiles associated with different scope elements."""
-        scope_map_list = scope_maps.get(central_conn=self.central_conn)
+        """Fetches all profile assignments and records them on the matching scope elements.
+
+        Library assignments come from config-assignments; scope-map rows not
+        among them are local profiles. Each entry's object_type is "LIBRARY"
+        or "LOCAL".
+        """
+        assignments = get_config_assignments(central_conn=self.central_conn)
+        if assignments is None:
+            self.central_conn.logger.error(
+                "Unable to fetch config assignments; assigned profiles left unchanged"
+            )
+            return
         self.central_conn.logger.info(
-            f"Total scope mappings fetched from account: {len(scope_map_list)}"
+            f"Total config assignments fetched from account: {len(assignments)}"
         )
-        unknown_scopes = []
-        for mapping in scope_map_list:
-            scope_id = mapping.pop("scope-name")
-            if scope_id in unknown_scopes:
-                continue
-            required_scope_element = self._find_scope_element(ids=scope_id)
-            if required_scope_element:
-                required_scope_element.add_profile(
-                    name=mapping["resource"],
-                    persona=mapping["persona"],
-                )
-            else:
-                unknown_scopes.append(scope_id)
+        library = [
+            (
+                int(a["scope-id"]),
+                a["device-function"],
+                f"{a['profile-type']}/{a['profile-instance']}",
+            )
+            for a in assignments
+        ]
+        # ponytail: local profiles come from deprecated scope-maps (config-assignments has no local view); switch when Central adds one
+        scope_maps = get_scope_maps(central_conn=self.central_conn)
+        if scope_maps is None:
+            self.central_conn.logger.warning(
+                "Unable to fetch scope maps; local profiles could not be loaded"
+            )
+            scope_maps = []
+        library_keys = set(library)
+        local = [
+            (int(m["scope-id"]), m["persona"], m["resource"]) for m in scope_maps
+        ]
+        local = [row for row in local if row not in library_keys]
+        for element in self._lookup_maps["id"].values():
+            element.assigned_profiles = []
+        for object_type, rows in (("LIBRARY", library), ("LOCAL", local)):
+            for scope_id, device_function, resource in rows:
+                element = self._lookup_maps["id"].get(scope_id)
+                if element is not None:
+                    element.add_profile(
+                        name=resource,
+                        device_function=device_function,
+                        object_type=object_type,
+                    )
 
     def assign_profile_to_scope(
         self,
         profile_name,
-        profile_persona=None,
+        profile_persona=None,  # remove persona in 2.x
         scope=None,
         scope_name=None,
         scope_id=None,
+        *,
+        device_function=None,
     ):
-        """Assigns a configuration profile to the specified scope.
+        """Assigns a configuration profile to the specified scope (config-assignments API).
 
         Args:
-            profile_name (str): Name of the configuration profile
-            profile_persona (str, optional): Device Persona of the profile.
-                Optional if assigning to a device.
+            profile_name (str): Profile resource string
+                "<profile-type>/<profile-instance>", e.g. "layer2-vlan/100".
+            profile_persona (str, optional): Deprecated alias of device_function.
             scope (str, optional): Type of the scope (e.g., global, site, site_collection, device)
             scope_name (str, optional): Name of the scope element.
                 Either scope_name or scope_id is required.
             scope_id (int, optional): ID of the scope element.
                 Either scope_name or scope_id is required.
+            device_function (str, optional): Device function of the profile,
+                e.g. "CAMPUS_AP" or "ALL". Optional if assigning to a device.
 
         Returns:
             (bool): True if successful, False otherwise
         """
-        return self._profile_to_scope_helper(
-            "assign",
-            profile_name,
-            profile_persona,
-            scope,
-            scope_name,
-            scope_id,
+        # remove persona in 2.x
+        device_function = _resolve_device_function(
+            device_function=device_function, persona=profile_persona
+        )
+        element = self._profile_scope_element(scope, scope_name, scope_id)
+        return bool(element) and element.assign_profile(
+            profile_name, device_function=device_function
         )
 
     def unassign_profile_to_scope(
         self,
         profile_name,
-        profile_persona=None,
+        profile_persona=None,  # remove persona in 2.x
         scope=None,
         scope_name=None,
         scope_id=None,
+        *,
+        device_function=None,
     ):
-        """Unassigns a configuration profile from the specified scope.
+        """Unassigns a configuration profile from the specified scope (config-assignments API).
 
         Args:
-            profile_name (str): Name of the configuration profile
-            profile_persona (str, optional): Device Persona of the profile.
-                Optional if unassigning from a device.
+            profile_name (str): Profile resource string
+                "<profile-type>/<profile-instance>", e.g. "layer2-vlan/100".
+            profile_persona (str, optional): Deprecated alias of device_function.
             scope (str, optional): Type of the scope (e.g., global, site, site_collection, device)
             scope_name (str, optional): Name of the scope element.
                 Either scope_name or scope_id is required.
             scope_id (int, optional): ID of the scope element.
                 Either scope_name or scope_id is required.
+            device_function (str, optional): Device function of the profile.
+                Optional if unassigning from a device.
 
         Returns:
             (bool): True if successful, False otherwise
         """
-        return self._profile_to_scope_helper(
-            "unassign",
-            profile_name,
-            profile_persona,
-            scope,
-            scope_name,
-            scope_id,
+        # remove persona in 2.x
+        device_function = _resolve_device_function(
+            device_function=device_function, persona=profile_persona
+        )
+        element = self._profile_scope_element(scope, scope_name, scope_id)
+        return bool(element) and element.unassign_profile(
+            profile_name, device_function=device_function
         )
 
-    def _profile_to_scope_helper(
-        self,
-        operation,
-        profile_name,
-        profile_persona=None,
-        scope=None,
-        scope_name=None,
-        scope_id=None,
-    ):
-        """Helper method for assigning or unassigning profiles to/from scopes.
+    def _profile_scope_element(self, scope, scope_name, scope_id):
+        """Returns the scope element a profile is (un)assigned to.
 
         Args:
-            operation (str): Operation type (assign or unassign)
-            profile_name (str): Name of the configuration profile
-            profile_persona (str, optional): Persona of the profile
-            scope (str, optional): Type of the scope (e.g., global, site, site_collection, device)
-            scope_name (str, optional): Name of the scope element.
-                Either scope_name or scope_id is required.
-            scope_id (int, optional): ID of the scope element.
-                Either scope_name or scope_id is required.
+            scope (str): Type of the scope; "global" returns this object
+            scope_name (str): Name of the scope element
+            scope_id (int): ID of the scope element
 
         Returns:
-            (bool): True if successful, False otherwise
+            (object or None): Scope element, or None if not found
         """
-        required_scope_element = None
         if scope == "global":
-            required_scope_element = self
-        else:
-            required_scope_element = self._find_scope_element(
-                names=scope_name, ids=scope_id, scope=scope
-            )
-        if required_scope_element:
-            if (
-                required_scope_element.get_type() != "device"
-                and profile_persona is None
-            ):
-                self.central_conn.logger.error(
-                    "Profile persona is required for assigning or unassigning profiles to/from scopes other than devices."
-                )
-                return False
-            if operation == "assign":
-                return required_scope_element.assign_profile(
-                    profile_name=profile_name,
-                    profile_persona=profile_persona,
-                )
-            elif operation == "unassign":
-                return required_scope_element.unassign_profile(
-                    profile_name=profile_name,
-                    profile_persona=profile_persona,
-                )
+            return self
+        return self._find_scope_element(
+            names=scope_name, ids=scope_id, scope=scope
+        )
 
     def move_devices_between_sites(
         self,
@@ -1051,9 +993,9 @@ class Scopes(ScopeBase):
         device_identifier=None,
         deployment_mode=None,
     ):
-        """Moves devices between sites.
+        """Deprecated: moving devices between sites via NBAPI is not supported.
 
-        Note: Moving devices between sites via NBAPI is not currently supported.
+        Emits a DeprecationWarning and always returns False.
 
         Args:
             current_site (int or str or Site): ID, name, or Site instance of the current site
@@ -1066,7 +1008,7 @@ class Scopes(ScopeBase):
         Returns:
             (bool): True if successful, False otherwise
         """
-        print(
-            "Moving devices between sites via NBAPI is not currently supported"
+        _warn_deprecated(
+            "move_devices_between_sites is deprecated: moving devices between sites via NBAPI is not supported. It always returns False."
         )
         return False

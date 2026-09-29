@@ -3,7 +3,6 @@
 
 from .scope_base import ScopeBase
 from ..utils import SCOPE_URLS, generate_url
-from .scope_maps import ScopeMaps
 import pytz
 from datetime import datetime
 from ..utils.scope_utils import (
@@ -14,8 +13,6 @@ from ..utils.scope_utils import (
     rename_keys,
     validate_iso_location,
 )
-
-scope_maps = ScopeMaps()
 
 API_ATTRIBUTE_MAPPING = {
     "id": "id",
@@ -109,6 +106,9 @@ class Site(ScopeBase):
 
     def create(self):
         """Perform a POST call to create a site on Central.
+
+        The v1 API requires latitude and longitude; set them in
+        site_attributes (no geocoding is done by the SDK).
 
         Returns:
             (bool): True if site was created, False otherwise
@@ -269,10 +269,10 @@ class Site(ScopeBase):
 
         site_deletion_status = False
         api_method = "DELETE"
-        api_path = generate_url(SCOPE_URLS["SITE"])
-        api_params = {"scopeId": self.get_id()}
+        api_path = generate_url(SCOPE_URLS["SITE_BULK"])
+        api_data = {"items": [{"id": str(self.get_id())}]}
         resp = self.central_conn.command(
-            api_method=api_method, api_path=api_path, api_params=api_params
+            api_method=api_method, api_path=api_path, api_data=api_data
         )
         if resp["code"] == 200:
             self.id = None
@@ -353,25 +353,12 @@ class Site(ScopeBase):
             "zipcode": self.zipcode,
             "timezone": self.__get_timezone_attributes(),
         }
+        # latitude/longitude are required by the v1 API; sent when set
+        for key in ("latitude", "longitude"):
+            if getattr(self, key, None) is not None:
+                api_body[key] = getattr(self, key)
         if self.materialized:
             api_body["scopeId"] = str(self.get_id())
-            optional_attributes = list(
-                set(API_ATTRIBUTE_MAPPING.values())
-                - set(api_body.keys())
-                - set(["id"])
-            )
-            for key in optional_attributes:
-                if hasattr(self, key):
-                    api_key = next(
-                        (
-                            k
-                            for k, v in API_ATTRIBUTE_MAPPING.items()
-                            if v == key
-                        ),
-                        None,
-                    )
-                    if api_key:
-                        api_body[api_key] = getattr(self, key)
 
         return api_body
 

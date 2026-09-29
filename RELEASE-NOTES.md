@@ -1,3 +1,54 @@
+# 2.0a26
+
+This release moves scope management to the v1 configuration APIs, replaces scope-maps with config-assignments for profile assignment, fixes local profile parameters, and simplifies the scopes and profiles modules.
+
+Fixes #93, fixes #94, fixes #95.
+
+### Breaking Changes & Deprecations
+
+- **`persona` renamed to `device_function`**
+  - `Profiles(local=...)` now takes `{"scope_id": <int>, "device_function": "<DEVICE_FUNCTION>"}`. Scope assignment methods take a keyword-only `device_function=` argument.
+  - `persona` still works but emits a `DeprecationWarning` and will be removed in the first non-alpha 2.x release. Passing both raises `ParameterError`.
+- **Scope maps deprecated in favor of config-assignments**
+  - `ScopeMaps` emits a `DeprecationWarning`. Profile assignment, unassignment and `get_scope_profiles` now use `network-config/v1alpha1/config-assignments`.
+  - `profile_name` for assignment must be `"<profile-type>/<profile-instance>"` (e.g. `Profiles.get_resource_str()`).
+  - `device_function="ALL"` is passed to the API unchanged; Central may reject it depending on a feature flag.
+  - `get_scope_profiles` reads library assignments from config-assignments and local profiles from scope-maps (config-assignments has no local view); each entry in `assigned_profiles` has an `object_type` of `LIBRARY` or `LOCAL`.
+  - Local profiles cannot be unassigned; `unassign_profile` logs an error pointing to deleting them via `Profiles(local=...)`.
+- `SCOPE_URLS["DEVICE_GROUP"]` now points to `device-groups` (`device-collections` is not available on v1).
+- `get_all_device_groups` returns `Device_Group` objects instead of dicts, consistent with the other `get_all_*` methods.
+- `move_devices_between_sites` emits a `DeprecationWarning` (it was never implemented).
+
+### Improvements
+
+- **API versions (#93)**
+  - Sites, site-collections, device-groups, hierarchy, global scope and site-collection add/remove-sites now default to `v1` (their `v1alpha1` endpoints are deprecated). Other configuration APIs stay on `v1alpha1`. An explicit `version=` always wins.
+  - Site/site-collection updates, bulk deletes, remove-sites (`site-id`) and hierarchy (`id`/`type`) use the v1 request shapes. The global scope ID is read from `network-config/v1/global`.
+  - API version validation accepts any well-formed version (`v1`, `v1alpha1`, `v2beta1`, ...) instead of a fixed list.
+- **`generate_url(identifier=...)` (#95)**
+  - Appends a URL-encoded profile/resource identifier, e.g. `generate_url("layer2-vlan", identifier=100)`.
+  - `Profiles` URL-encodes names fully and no longer double-prefixes paths that already include `network-config/<version>/`.
+- **Local profile parameters (#94)**
+  - Docstrings corrected. Query parameters are sent kebab-case (`object-type`, `scope-id`, `device-function`, `view-type`) as documented by the API. A boolean `scope_id` is rejected.
+- Network-config query parameters are standardized to kebab-case.
+- Unknown fields in API responses no longer raise errors while loading scopes.
+
+### Bug Fixes
+
+- `Profiles.create/get/update/delete` raise `VerificationError` (not `KeyError`) when the connection or path is missing.
+- `Profiles.get` treats an empty `200` response as not found.
+- Fixed bulk-vs-single path detection for profile names with special characters, `set_config` key validation, and `get_central_conn` without a connection.
+- `find_site_collection` now refreshes site collections (it refreshed sites); lookup maps are rebuilt after every refresh so deleted scopes can no longer be found.
+- Site collections no longer share one `sites`/`assigned_profiles` list across instances.
+- Fixed `Site_Collection` key renaming raising `KeyError` and mutating the caller's data, crashes in `get_hierarchy` by collection name and in `delete_site`/`delete_site_collection`, association with integer site IDs, and malformed error messages.
+- Deleting a site collection that still contains sites logs a clear error instead of failing silently.
+
+### Notes
+
+- Scope and profile write operations were verified against a lab Central account; config-assignments `v1alpha1` is used as documented.
+
+Full Changelog: [v2.0a25...v2.0a26](https://github.com/aruba/pycentral/compare/v2.0a25...v2.0a26)
+
 # 2.0a25
 
 This release expands Streaming API support for client, switch, and alert events, and improves profile initialization with configurable API paths.

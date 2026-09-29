@@ -73,14 +73,19 @@ SCOPE_URLS = {
     "SITE": "sites",
     "SITE_COLLECTION": "site-collections",
     "DEVICE": "devices",
-    "DEVICE_GROUP": "device-collections",
+    "DEVICE_GROUP": "device-groups",
     "ADD_SITE_TO_COLLECTION": "site-collection-add-sites",
     "REMOVE_SITE_FROM_COLLECTION": "site-collection-remove-sites",
     "HIERARCHY": "hierarchy",
+    "GLOBAL": "global",
+    "SITE_BULK": "sites/bulk",
+    "SITE_COLLECTION_BULK": "site-collections/bulk",
     "SCOPE-MAPS": "scope-maps",
+    "CONFIG_ASSIGNMENTS": "config-assignments",
 }
 
-VALID_PERSONAS = [
+# What "ALL" expands to in the deprecated ScopeMaps.
+ALL_DEVICE_FUNCTIONS = [
     "SERVICE_PERSONA",
     "HYBRID_NAC",
     "CORE_SWITCH",
@@ -94,6 +99,7 @@ VALID_PERSONAS = [
     "ACCESS_SWITCH",
     "MICROBRANCH_AP",
 ]
+VALID_PERSONAS = ALL_DEVICE_FUNCTIONS  # remove persona in 2.x
 
 __all__ = [
     "CLUSTER_BASE_URLS",
@@ -102,4 +108,5 @@ __all__ = [
     "GLP_URLS",
     "SCOPE_URLS",
     "VALID_PERSONAS",
+    "ALL_DEVICE_FUNCTIONS",
 ]

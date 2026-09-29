@@ -1,12 +1,12 @@
 # (C) Copyright 2025 Hewlett Packard Enterprise Development LP.
 # MIT License
 
-from .scope_maps import ScopeMaps
+from .scope_maps import create_config_assignment, delete_config_assignment
+from ..exceptions import ParameterError
+from ..utils.profile_utils import _resolve_device_function
 from ..utils.scope_utils import (
     fetch_attribute,
 )
-
-scope_maps = ScopeMaps()
 
 
 class ScopeBase:
@@ -41,132 +41,200 @@ class ScopeBase:
         """
         return fetch_attribute(self, "type")
 
-    def assign_profile(self, profile_name, profile_persona=None):
-        """Assigns a profile with the provided name and persona to the scope.
+    def assign_profile(
+        self,
+        profile_name,
+        profile_persona=None,  # remove persona in 2.x
+        *,
+        device_function=None,
+    ):
+        """Assigns a profile to the scope via the config-assignments API.
 
         Args:
-            profile_name (str): Name of the profile to assign
-            profile_persona (str, optional): Device Persona of the profile to assign.
-                Optional if assigning a profile to a device
+            profile_name (str): Profile resource string
+                "<profile-type>/<profile-instance>", e.g. "layer2-vlan/100"
+                (see Profiles.get_resource_str()).
+            profile_persona (str, optional): Deprecated alias of device_function.
+            device_function (str, optional): Device function of the profile,
+                e.g. "CAMPUS_AP" or "ALL". Optional if assigning to a device
+                (defaults to the device's config_persona). "ALL" depends on a
+                Central feature flag and may be rejected; the API's error is logged.
 
         Returns:
             (bool): True if the profile assignment was successful, False otherwise
+
+        Raises:
+            ParameterError: If profile_name is not "<profile-type>/<profile-instance>"
         """
-        profile_persona = self._resolve_profile_persona(profile_persona)
-        if profile_persona is None:
-            return False
-
-        resp = scope_maps.associate_profile_to_scope(
-            central_conn=self.central_conn,
-            scope_id=self.get_id(),
-            profile_name=profile_name,
-            persona=profile_persona,
+        # remove persona in 2.x
+        device_function = _resolve_device_function(
+            device_function=device_function, persona=profile_persona
         )
-        if resp["code"] == 200:
-            self.add_profile(name=profile_name, persona=profile_persona)
-            return True
-        else:
-            self.central_conn.logger.error(
-                "Unable to assign profile "
-                + profile_name
-                + " to "
-                + self.get_name()
-            )
-            return False
+        return self._config_assignment("assign", profile_name, device_function)
 
-    def unassign_profile(self, profile_name, profile_persona=None):
-        """Unassigns a profile with the provided name and persona from the scope.
+    def unassign_profile(
+        self,
+        profile_name,
+        profile_persona=None,  # remove persona in 2.x
+        *,
+        device_function=None,
+    ):
+        """Unassigns a profile from the scope via the config-assignments API.
 
         Args:
-            profile_name (str): Name of the profile to unassign
-            profile_persona (str, optional): Persona of the profile to unassign.
-                Optional if unassigning a profile from a device
+            profile_name (str): Profile resource string
+                "<profile-type>/<profile-instance>", e.g. "layer2-vlan/100".
+            profile_persona (str, optional): Deprecated alias of device_function.
+            device_function (str, optional): Device function of the profile.
+                Optional if unassigning from a device.
 
         Returns:
             (bool): True if the profile unassignment was successful, False otherwise
+
+        Raises:
+            ParameterError: If profile_name is not "<profile-type>/<profile-instance>"
         """
-        profile_persona = self._resolve_profile_persona(profile_persona)
-        if profile_persona is None:
-            return False
-
-        resp = scope_maps.unassociate_profile_from_scope(
-            central_conn=self.central_conn,
-            scope_id=self.get_id(),
-            profile_name=profile_name,
-            persona=profile_persona,
+        # remove persona in 2.x
+        device_function = _resolve_device_function(
+            device_function=device_function, persona=profile_persona
         )
-        if resp["code"] == 200:
-            self.remove_profile(name=profile_name, persona=profile_persona)
-            return True
-        else:
-            self.central_conn.logger.error(
-                "Unable to unassign profile "
-                + profile_name
-                + " to "
-                + self.get_name()
-            )
-            return False
+        return self._config_assignment(
+            "unassign", profile_name, device_function
+        )
 
-    def _resolve_profile_persona(self, profile_persona):
-        """Internal helper to validate and resolve the correct profile_persona for the scope.
+    def _config_assignment(self, operation, profile_name, device_function):
+        """Creates or deletes the config assignment of profile_name on this scope.
 
         Args:
-            profile_persona (str or None): Profile persona to validate and resolve
+            operation (str): "assign" or "unassign"
+            profile_name (str): "<profile-type>/<profile-instance>"
+            device_function (str or None): Device function of the profile
 
         Returns:
-            (str or None): Resolved persona or None if invalid
+            (bool): True if successful, False otherwise
         """
-        if profile_persona == "":
-            profile_persona = None
-        if self.get_type() == "device":
-            if not self.provisioned_status:
-                self.central_conn.logger.error(
-                    "Device is currently configured via Classic Central only. Please provision the device to new Central before assigning/unassigning profile to device."
-                )
-                return None
-            if profile_persona is not None:
-                if profile_persona != self.config_persona:
-                    self.central_conn.logger.error(
-                        f"Invalid profile persona(device function) '{profile_persona}' for device. Device's current persona is {self.device_function} ({self.config_persona}). If you would like the profile to take the device's current persona, you can leave the profile_persona attribute empty."
-                    )
-                    return None
-                return profile_persona
-            else:
-                return self.config_persona
-        else:
-            if profile_persona is None:
-                self.central_conn.logger.error(
-                    "Profile persona is required when assigning a profile to a scope other than device."
-                )
-                return None
-            return profile_persona
+        profile_type, _, profile_instance = (profile_name or "").partition("/")
+        if not profile_type or not profile_instance:
+            raise ParameterError(
+                f"profile_name must be '<profile-type>/<profile-instance>', e.g. 'layer2-vlan/100', got {profile_name!r}"
+            )
+        device_function = self._resolve_scope_device_function(device_function)
+        if device_function is None:
+            return False
+        if operation == "unassign" and any(
+            p["resource"] == profile_name
+            and p["device_function"] == device_function
+            and p.get("object_type") == "LOCAL"
+            for p in getattr(self, "assigned_profiles", [])
+        ):
+            self.central_conn.logger.error(
+                f"'{profile_name}' is a local profile at this scope; it cannot be unassigned. Delete it with Profiles(..., local={{'scope_id': {self.get_id()}, 'device_function': '{device_function}'}}).delete() instead."
+            )
+            return False
+        request = (
+            create_config_assignment
+            if operation == "assign"
+            else delete_config_assignment
+        )
+        resp = request(
+            self.central_conn,
+            self.get_id(),
+            device_function,
+            profile_type,
+            profile_instance,
+        )
+        if resp["code"] != 200:
+            self.central_conn.logger.error(
+                f"Unable to {operation} profile {profile_name} ({device_function}) for {self.get_name()}. Error message - {resp['msg']}"
+            )
+            return False
+        self.central_conn.logger.info(
+            f"Successfully {operation}ed profile {profile_name} ({device_function}) for {self.get_name()}"
+        )
+        record = self.add_profile if operation == "assign" else self.remove_profile
+        record(name=profile_name, device_function=device_function)
+        return True
 
-    def add_profile(self, name, persona):
+    def _resolve_scope_device_function(self, device_function):
+        """Validates and resolves the device function for this scope.
+
+        Devices default to their config_persona; other scopes require one.
+
+        Args:
+            device_function (str or None): Device function to validate
+
+        Returns:
+            (str or None): Resolved device function or None if invalid
+        """
+        device_function = device_function or None
+        if self.get_type() != "device":
+            if device_function is None:
+                self.central_conn.logger.error(
+                    "Device function is required when assigning a profile to a scope other than device."
+                )
+            return device_function
+        if not self.provisioned_status:
+            self.central_conn.logger.error(
+                "Device is currently configured via Classic Central only. Please provision the device to new Central before assigning/unassigning profile to device."
+            )
+            return None
+        config_persona = getattr(self, "config_persona", None)
+        if config_persona is None or device_function not in (
+            None,
+            config_persona,
+        ):
+            self.central_conn.logger.error(
+                f"Invalid device function '{device_function}' for device. Device's current device function is {self.device_function} ({config_persona}). Leave device_function empty to use the device's current device function."
+            )
+            return None
+        return config_persona
+
+    def add_profile(
+        self, name, persona=None, *, device_function=None, object_type="LIBRARY"
+    ):  # remove persona in 2.x
         """Helper function that adds a profile to the assigned profiles of the scope in the SDK.
 
         Args:
-            name (str): Name of the profile to add
-            persona (str): Device Persona of the profile to add
+            name (str): Profile resource string "<profile-type>/<profile-instance>"
+            persona (str, optional): Deprecated alias of device_function.
+            device_function (str): Device function of the profile
+            object_type (str, optional): "LIBRARY" or "LOCAL"
         """
-        self.assigned_profiles.append({"persona": persona, "resource": name})
+        # remove persona in 2.x
+        device_function = _resolve_device_function(
+            device_function=device_function, persona=persona
+        )
+        self.assigned_profiles.append(
+            {
+                "device_function": device_function,
+                "persona": device_function,  # remove persona in 2.x
+                "resource": name,
+                "object_type": object_type,
+            }
+        )
 
-    def remove_profile(self, name, persona):
+    def remove_profile(
+        self, name, persona=None, *, device_function=None
+    ):  # remove persona in 2.x
         """Helper function that removes a profile from the assigned profiles of the scope in the SDK.
 
         Args:
-            name (str): Name of the profile to remove
-            persona (str): Device Persona of the profile to remove
+            name (str): Profile resource string "<profile-type>/<profile-instance>"
+            persona (str, optional): Deprecated alias of device_function.
+            device_function (str): Device function of the profile
 
         Returns:
             (bool): True if the profile was successfully removed, False otherwise
         """
-        remove_status = False
-        index = None
-        for id_element, element in enumerate(self.assigned_profiles):
-            if element["persona"] == persona and element["resource"] == name:
-                index = id_element
-                break
-        if index is not None:
-            self.assigned_profiles.pop(index)
-            remove_status = True
-        return remove_status
+        # remove persona in 2.x
+        device_function = _resolve_device_function(
+            device_function=device_function, persona=persona
+        )
+        for index, element in enumerate(self.assigned_profiles):
+            if (
+                element["device_function"] == device_function
+                and element["resource"] == name
+            ):
+                self.assigned_profiles.pop(index)
+                return True
+        return False
