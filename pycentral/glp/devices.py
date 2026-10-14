@@ -160,9 +160,15 @@ class Devices(object):
         # Check for rate limit handler
         if count > INPUT_SIZE:
             conn.logger.info("WARNING MORE THAN 5 DEVICES IS AN ALPHA FEATURE!")
-            resp_list.append(self.__add_dev("network", network))
-            resp_list.append(self.__add_dev("compute", compute))
-            resp_list.append(self.__add_dev("storage", storage))
+            for device_type, device_list in (
+                ("network", network),
+                ("compute", compute),
+                ("storage", storage),
+            ):
+                if device_list:
+                    resp_list.append(
+                        self.__add_dev(conn, device_type, device_list)
+                    )
             return resp_list
         else:
             path = generate_url(GLP_URLS["DEVICE"], category="devices")
