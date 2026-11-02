@@ -869,6 +869,7 @@ class Scopes(ScopeBase):
         or "LOCAL". Single-instance profiles (empty profile-instance) use the
         bare profile type as resource, e.g. "policy-groups", matching scope-maps.
         """
+        self._update_lookup_map()
         assignments = get_config_assignments(central_conn=self.central_conn)
         if assignments is None:
             self.central_conn.logger.error(
