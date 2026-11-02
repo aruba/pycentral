@@ -1,4 +1,5 @@
 from .scope_base import ScopeBase
+from ..utils.scope_utils import rename_keys
 
 
 API_ATTRIBUTE_MAPPING = {
@@ -34,7 +35,7 @@ class Device_Group(ScopeBase):
         self.type = "device_group"
         if from_api:
             # Rename keys if attributes are from API
-            device_group_attributes = self.__rename_keys(
+            device_group_attributes = rename_keys(
                 device_group_attributes, API_ATTRIBUTE_MAPPING
             )
             device_group_attributes["assigned_profiles"] = []
@@ -45,25 +46,3 @@ class Device_Group(ScopeBase):
             raise Exception(
                 "Currently, Device Group requires attributes from API response to be created."
             )
-
-    def __rename_keys(self, api_dict, api_attribute_mapping):
-        """Renames the keys of the attributes from the API response.
-
-        Args:
-            api_dict (dict): Dict from Central API Response
-            api_attribute_mapping (dict): Dict mapping API keys to object attributes
-
-        Returns:
-            (dict): Renamed dictionary of object attributes
-        """
-        integer_attributes = {"id"}
-        renamed_dict = {}
-
-        for key, value in api_dict.items():
-            new_key = api_attribute_mapping.get(key)
-            if not new_key:
-                continue  # Skip unknown keys
-            if key in integer_attributes and value is not None:
-                value = int(value)
-            renamed_dict[new_key] = value
-        return renamed_dict

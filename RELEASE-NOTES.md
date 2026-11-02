@@ -1,3 +1,63 @@
+# 2.0a26
+
+### Highlights
+
+- Scope management moves to the v1 configuration APIs.
+- Profile assignment moves from scope-maps to config-assignments.
+- Local profile parameters are fixed, and the scopes and profiles modules are simpler and more robust.
+- Fixes #93, fixes #94, fixes #95.
+
+### Breaking changes
+
+- **`get_all_device_groups` returns `Device_Group` objects** instead of dicts, consistent with the other `get_all_*` methods. Read attributes instead of dict keys.
+- **Scope endpoints default to `v1`.** Sites, site-collections, device-groups, hierarchy, global scope and site-collection add/remove-sites use `v1` and the v1 request shapes (their `v1alpha1` endpoints are deprecated). To keep the old endpoints, pass `version="v1alpha1"` explicitly.
+- **`SCOPE_URLS["DEVICE_GROUP"]` points to `device-groups`** (`device-collections` is not available on v1). Update code that builds URLs from this constant.
+- **`profile_name` for assignment must be `"<profile-type>/<profile-instance>"`** (e.g. `Profiles.get_resource_str()`), or the bare `"<profile-type>"` for single-instance profiles such as `policy-groups`.
+- **Local profiles cannot be unassigned.** `unassign_profile` checks config-assignments first and, if the profile is not a library assignment at that scope, logs an error instead of sending a DELETE. Delete local profiles with `Profiles(local=...)`.
+- **Passing both `persona` and `device_function` raises `ParameterError`.** Pass only `device_function`.
+
+### Added
+
+- `generate_url(identifier=...)` appends a URL-encoded profile/resource identifier, e.g. `generate_url("layer2-vlan", identifier=100)` (#95).
+- Single-instance profiles such as `policy-groups` can be assigned with the bare `"<profile-type>"` (sent with an empty `profile-instance`). Central only allows `policy-groups` at global and rejects unassigning it; the API's error is logged.
+- Each entry in `get_scope_profiles`' `assigned_profiles` has an `object_type` of `LIBRARY` or `LOCAL`.
+
+### Changed
+
+- Profile assignment, unassignment and `get_scope_profiles` use `network-config/v1alpha1/config-assignments`. `get_scope_profiles` reads library assignments from config-assignments and local profiles from scope-maps (config-assignments has no local view).
+- Other configuration APIs stay on `v1alpha1`. An explicit `version=` always wins (#93).
+- Site/site-collection updates, bulk deletes, remove-sites (`site-id`) and hierarchy (`id`/`type`) use the v1 request shapes. The global scope ID is read from `network-config/v1/global`.
+- API version validation accepts any well-formed version (`v1`, `v1alpha1`, `v2beta1`, ...) instead of a fixed list.
+- Local profile query parameters are sent kebab-case (`object-type`, `scope-id`, `device-function`, `view-type`) as documented by the API. A boolean `scope_id` is rejected (#94).
+- All network-config query parameters are standardized to kebab-case.
+- `Profiles` URL-encodes names fully and no longer double-prefixes paths that already include `network-config/<version>/`.
+- `device_function="ALL"` is passed to the API unchanged; Central may reject it depending on a feature flag.
+
+### Deprecated
+
+- `persona` is renamed to `device_function`. `Profiles(local=...)` now takes `{"scope_id": <int>, "device_function": "<DEVICE_FUNCTION>"}`, and scope assignment methods take a keyword-only `device_function=` argument. `persona` still works but emits a `DeprecationWarning` and will be removed in the first non-alpha 2.x release.
+- `ScopeMaps` emits a `DeprecationWarning`; use config-assignments.
+- `move_devices_between_sites` emits a `DeprecationWarning` (it was never implemented).
+
+### Fixed
+
+- `Profiles.create/get/update/delete` raise `VerificationError` instead of `KeyError` when the connection or path is missing.
+- `Profiles.get` treats an empty `200` response as not found.
+- Bulk-vs-single path detection works for profile names with special characters; `set_config` key validation and `get_central_conn` without a connection are fixed.
+- `find_site_collection` refreshes site collections (it refreshed sites). Lookup maps are rebuilt after every refresh so deleted scopes can no longer be found, and a `find_*` refresh reloads `assigned_profiles`.
+- Site collections no longer share one `sites`/`assigned_profiles` list across instances.
+- `Site_Collection` key renaming no longer raises `KeyError` or mutates the caller's data.
+- `get_hierarchy` by collection name, `delete_site` and `delete_site_collection` no longer crash; integer site IDs associate correctly; error messages are well-formed.
+- Deleting a site collection that still contains sites logs a clear error instead of failing silently.
+- Unknown fields in API responses no longer raise errors while loading scopes.
+
+### Docs
+
+- Docstrings for local profile parameters corrected (#94).
+- Pinned `pymdown-extensions<10.17` in `docs/requirements.txt`: newer releases break the API reference build with `mkdocstrings` 0.30.1, which kept the Read the Docs site from updating.
+
+Full Changelog: [v2.0a25...v2.0a26](https://github.com/aruba/pycentral/compare/v2.0a25...v2.0a26)
+
 # 2.0a25
 
 This release expands Streaming API support for client, switch, and alert events, and improves profile initialization with configurable API paths.

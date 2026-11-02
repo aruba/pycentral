@@ -1,15 +1,16 @@
 # (C) Copyright 2025 Hewlett Packard Enterprise Development LP.
 # MIT License
 
-from ..scopes.scope_maps import ScopeMaps
 from pycentral.utils import SCOPE_URLS, generate_url
 import copy
 import pycountry
 
-scope_maps = ScopeMaps()
-
-SUPPORTED_SCOPES = ["site", "site_collection", "device_group"]
+SUPPORTED_SCOPES = ["site", "site_collection", "device", "device_group"]
+# Scopes that have a network-config list endpoint
+LISTABLE_SCOPES = ["site", "site_collection", "device_group"]
 DEFAULT_LIMIT = 100
+# API keys whose values are converted to int when renamed
+INTEGER_KEYS = {"id", "scopeId", "collectionId", "deviceCount", "siteCount"}
 
 
 def fetch_attribute(obj, attribute):
@@ -44,16 +45,23 @@ def update_attribute(obj, attribute, new_value):
     return False
 
 
-def get_attributes(obj):
-    """Return all attributes of the provided object.
+def is_supported_scope(obj, scope, supported=SUPPORTED_SCOPES):
+    """Check the scope is supported, logging an error if it is not.
 
     Args:
-        obj (object): Object whose attributes have to be returned.
+        obj (object): Class instance with a central_conn used for logging.
+        scope (str): The type of the element.
+        supported (list, optional): Supported scope types.
 
     Returns:
-        (dict): Dictionary of attributes defined in the object.
+        (bool): True if the scope is supported, False otherwise.
     """
-    return {k: v for k, v in obj.__dict__.items() if not callable(v)}
+    if scope in supported:
+        return True
+    obj.central_conn.logger.error(
+        f"Unknown scope '{scope}'. Please provide one of the supported scopes - {', '.join(supported)}"
+    )
+    return False
 
 
 def get_all_scope_elements(obj, scope):
@@ -69,11 +77,7 @@ def get_all_scope_elements(obj, scope):
     Returns:
         (list or None): List of all scope elements, or None if there are errors.
     """
-    if scope not in SUPPORTED_SCOPES:
-        obj.central_conn.logger.error(
-            "Unknown scope provided. Please provide one of the supported scopes - "
-            ", ".join(SUPPORTED_SCOPES)
-        )
+    if not is_supported_scope(obj, scope, LISTABLE_SCOPES):
         return None
     limit = DEFAULT_LIMIT
     offset = 0
@@ -123,11 +127,7 @@ def get_scope_elements(
     Returns:
         (dict or None): API response with scope elements, or None if there are errors.
     """
-    if scope not in SUPPORTED_SCOPES:
-        obj.central_conn.logger.error(
-            "Unknown scope provided. Please provide one of the supported scopes - "
-            ", ".join(SUPPORTED_SCOPES)
-        )
+    if not is_supported_scope(obj, scope, LISTABLE_SCOPES):
         return None
 
     api_path = generate_url(SCOPE_URLS[scope.upper()])
@@ -171,17 +171,15 @@ def set_attributes(
         for attr, default_value in optional_attributes.items():
             value = attributes_dict.get(attr)
             if not value:
-                if isinstance(default_value, list):
-                    value = copy.deepcopy(default_value)
-                else:
-                    value = default_value
+                value = copy.deepcopy(default_value)
             setattr(obj, attr, value)
     if object_attributes:
         for attr, default_value in object_attributes.items():
-            if attr in attributes_dict:
-                setattr(obj, attr, attributes_dict[attr])
-            else:
-                setattr(obj, attr, default_value)
+            setattr(
+                obj,
+                attr,
+                attributes_dict.get(attr, copy.deepcopy(default_value)),
+            )
 
 
 def get_scope_element(obj, scope, scope_id=None):
@@ -198,10 +196,7 @@ def get_scope_element(obj, scope, scope_id=None):
     Returns:
         (dict or None): Attributes of the scope element if found, None otherwise.
     """
-    if scope not in SUPPORTED_SCOPES:
-        obj.central_conn.logger.error(
-            f"Unsupported scope '{scope}'. Supported scopes are: {', '.join(SUPPORTED_SCOPES)}"
-        )
+    if not is_supported_scope(obj, scope, LISTABLE_SCOPES):
         return None
     if scope_id is None:
         obj.central_conn.logger.error("Scope ID must be provided.")
@@ -221,38 +216,29 @@ def get_scope_element(obj, scope, scope_id=None):
 def rename_keys(api_dict, api_attribute_mapping):
     """Rename the keys of attributes from the API response.
 
+    Keys missing from api_attribute_mapping are skipped, so new fields added
+    by the API do not break object creation. Id/count keys are converted to
+    int, a timezone dict to its timezoneId and isProvisioned to a bool.
+
     Args:
         api_dict (dict): Dictionary of information from Central API Response.
         api_attribute_mapping (dict): Dictionary mapping API keys to object attributes.
 
     Returns:
         (dict): Renamed dictionary with keys mapped to object attributes.
-
-    Raises:
-        ValueError: If an unknown attribute is found in the API response.
     """
-    api_dict = copy.deepcopy(api_dict)
-
-    extra_keys = ["type", "scopeId"]
-    for key in extra_keys:
-        if key in api_dict:
-            del api_dict[key]
-    integer_attributes = ["id", "collectionId", "deviceCount"]
     renamed_dict = {}
     for key, value in api_dict.items():
         new_key = api_attribute_mapping.get(key)
-        if new_key:
-            if key in integer_attributes and value:
-                value = int(value)
-            elif (
-                key == "timezone"
-                and isinstance(value, dict)
-                and "timezoneId" in value
-            ):
-                value = value["timezoneId"]
-            renamed_dict[new_key] = value
-        else:
-            raise ValueError(f"Unknown attribute {key} found in API response")
+        if new_key is None:
+            continue
+        if key in INTEGER_KEYS and value not in (None, ""):
+            value = int(value)
+        elif key == "timezone" and isinstance(value, dict):
+            value = value.get("timezoneId")
+        elif key == "isProvisioned":
+            value = value == "Yes"
+        renamed_dict[new_key] = copy.deepcopy(value)
     return renamed_dict
 
 
