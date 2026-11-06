@@ -1,3 +1,27 @@
+# 2.0a27
+
+### Breaking changes
+
+- **Streaming now verifies TLS certificates by default.** Previously `Streaming` never verified the server certificate. If you connect through a TLS-intercepting proxy or a private CA, pass `verify=<path to CA bundle>`, or `verify=False` to disable verification (insecure, not recommended). The explicit `cert_reqs` setting also guards against changes in the websocket library's defaults.
+- **`oauthlib>=4.0.0,<5.0` is now required** (security fix for CVE-2026-49265 and CVE-2026-118669, patched only in 4.0.0). Projects that pin `oauthlib<4` will conflict and must upgrade.
+
+### Security
+
+- **Token exchange no longer logs tokens.** With DEBUG logging on, MSP tenant token exchange used to log the full token response, including the access token; it now logs only the workspace ID and `expires_in`. If you ran with DEBUG logging, rotate those tokens.
+- Updated `mkdocs-material` to 9.7.7 and `pymdown-extensions` to >=11.0.1 for the docs build (CVE-2026-73295, CVE-2026-61632, CVE-2026-67422); no runtime impact. `mkdocs build --strict` succeeds with `pymdown-extensions` 12.1 and `mkdocstrings` 0.30.1.
+- Fixed secrets handling: stopped tracking test credential/token files and widened `.gitignore`.
+
+### Changed
+
+- Classic sample scripts moved from `sample_scripts/` to `pycentral/classic/sample_scripts/`.
+- Copyright headers in the classic modules and sample scripts now read "Hewlett Packard Enterprise Development LP".
+- The release workflow uses `actions/download-artifact` v6, and a new `pip-audit` workflow checks dependencies for known vulnerabilities.
+
+### Docs
+
+- Added `SECURITY.md`: supported versions and how to report a vulnerability.
+- `CONTRIBUTIONS.md`: updated branding, the team contact address (networking-automation@hpe.com) and the sample scripts path.
+
 # 2.0a26
 
 ### Highlights
