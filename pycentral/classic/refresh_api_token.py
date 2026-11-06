@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2020 Aruba, a Hewlett Packard Enterprise company
+# Copyright (c) 2026 Hewlett Packard Enterprise Development LP.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal

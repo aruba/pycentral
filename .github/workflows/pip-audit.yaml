@@ -1,0 +1,36 @@
+name: Dependency Audit
+
+on:
+    pull_request:
+    push:
+        branches:
+            - development
+            - v2
+    schedule:
+        - cron: "0 8 * * 1"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    pip-audit:
+        name: pip-audit
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v6
+              with:
+                  persist-credentials: false
+
+            - name: Set up Python
+              uses: actions/setup-python@v6
+              with:
+                  python-version: "3.13"
+                  cache: pip
+
+            - name: Install pip-audit
+              run: python -m pip install --upgrade pip pip-audit
+
+            - name: Audit project dependencies
+              run: pip-audit . --progress-spinner off

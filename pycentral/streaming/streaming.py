@@ -85,10 +85,22 @@ class Streaming:
             means retry indefinitely.
         filters (str|list[str], optional): Either a single filter string or a list of filter strings.
             If a list is provided, its elements will be joined with commas to form the header value.
+        verify (bool|str, optional): TLS verification of the WebSocket
+            server. ``True`` (default) uses the system CA store, a string is
+            the path to a CA bundle. Warning: ``False`` disables certificate
+            verification and exposes the token to man-in-the-middle attacks.
 
     Raises:
         ValueError: If an unsupported event is provided or filters are of an unexpected type.
     """
+
+    def _sslopt(self):
+        """Build the websocket-client ``sslopt`` dict from ``verify``."""
+        if self.verify is False:
+            return {"cert_reqs": ssl.CERT_NONE}
+        if isinstance(self.verify, str):
+            return {"cert_reqs": ssl.CERT_REQUIRED, "ca_certs": self.verify}
+        return {"cert_reqs": ssl.CERT_REQUIRED}
 
     def __init__(
         self,
@@ -97,6 +109,8 @@ class Streaming:
         reconnect_delay=5,
         max_retries=None,
         filters=None,
+        *,
+        verify: bool | str = True,
     ):
         self.central_conn = central_conn
         # cache the commonly used app route and token key to simplify lookups
@@ -125,6 +139,7 @@ class Streaming:
         self.service, self.version, self.decoder = routes[event]
         self.reconnect_delay = reconnect_delay
         self.max_retries = max_retries
+        self.verify = verify
         self.logger = central_conn.logger
         self.ws = None
         self.user_callback = None
@@ -334,7 +349,7 @@ class Streaming:
 
                     self.logger.info(f"Connecting to {url.split('?')[0]}...")
                     self.ws.run_forever(
-                        sslopt={"cert_reqs": ssl.CERT_NONE},
+                        sslopt=self._sslopt(),
                         ping_interval=_PING_INTERVAL,
                         ping_timeout=_PING_TIMEOUT,
                     )

@@ -49,9 +49,9 @@ At least one review from a maintainer is required for all patches.
 This repo is maintained on a best-effort basis. The burden is on the submitter and not the repo maintainers to ensure the following criteria are met when code is submitted.
 1. All code submissions must adhere to the structure of the repo:
     * Directory /pycentral holds python libraries and /workflows directory.
-    * The library files are base/low-level API calls with each file relating to a category in the API Documentation page within the Aruba Central API Gateway.
+    * The library files are base/low-level API calls with each file relating to a category in the API Documentation page within the Central API Gateway.
     * High-level process/use-case focused scripts must be placed in the /workflows directory.
-    * Sample Scripts should be placed in /sample_scripts directory.
+    * Sample Scripts should be placed in /pycentral/classic/sample_scripts directory.
     * Do not create new separate directory for submitted projects.
     * Do not make copies of existing files to be saved in different folders.
 2. All Python code should conform to liberal PEP-8 standards.
@@ -122,11 +122,11 @@ accepted.
 
 | Resource | Description |
 | --- | --- |
-| [Airheads Developer Community][airheads-link] | Aruba Airheads forum to discuss all things network automation. |
+| [Airheads Developer Community][airheads-link] | Airheads forum to discuss all things network automation. |
 | [Aruba Bots Automate Videos][aruba-bots-playlist-link]| YouTube playlist containing instructional videos for Ansible and Python automation repositories. |
-| [aruba-automation@hpe.com][email-link] | Distribution list email to contact the switching automation technical marketing engineering team. |
+| [networking-automation@hpe.com][email-link] | Distribution list email to contact the switching automation technical marketing engineering team. |
 
 
 [airheads-link]: https://community.arubanetworks.com/community-home/digestviewer?communitykey=ea467413-8db4-4c49-b5f8-1a12f193e959
 [aruba-bots-playlist-link]: https://youtube.com/playlist?list=PLsYGHuNuBZcY02FUh95ZpOB5VFkPurVaX
-[email-link]: mailto:aruba-automation@hpe.com
+[email-link]: mailto:networking-automation@hpe.com

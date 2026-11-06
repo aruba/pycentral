@@ -127,4 +127,14 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-.github/
+
+# Credentials and local scratch (never commit)
+account_credentials*.yaml
+account_credentials*.json
+*credentials*.yaml
+*credentials*.json
+*token*.json
+*token*.yaml
+!pycentral/classic/sample_scripts/**
+/test.py
+!*.example.*

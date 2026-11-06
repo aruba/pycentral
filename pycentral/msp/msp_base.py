@@ -133,7 +133,9 @@ class MSPBase(NewCentralBase):
                     subject_token=self._get_msp_access_token(), **fetch_kwargs
                 )
                 self.logger.debug(
-                    f"Tenant token exchange response for tenant_workspace_id='{tenant_workspace_id}': {token}"
+                    "Tenant token exchanged for tenant_workspace_id='%s' (expires_in=%s)",
+                    tenant_workspace_id,
+                    token.get("expires_in"),
                 )
                 return token["access_token"]
             except (TokenExpiredError, InvalidClientError):

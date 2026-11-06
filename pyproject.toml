@@ -19,7 +19,7 @@ classifiers = [
 ]
 dependencies = [
     "PyYAML>=6.0.3,<7.0",
-    "oauthlib>=3.2.2,<4.0",
+    "oauthlib>=4.0.0,<5.0",
     "requests_oauthlib>=2.0.0,<3.0",
     "pytz>=2025.2,<2027.0",
     "protobuf>=6.33.5,<7.0",
@@ -37,7 +37,7 @@ Repository = "https://github.com/aruba/pycentral/"
 Issues = "https://github.com/aruba/pycentral/issues"
 
 [tool.setuptools.packages.find]
-exclude = ["docs", "tests", "sample_scripts"]
+exclude = ["docs", "tests", "sample_scripts", "pycentral.classic.sample_scripts*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "pycentral.__version__"}

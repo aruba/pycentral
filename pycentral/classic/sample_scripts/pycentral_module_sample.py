@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2020 Aruba, a Hewlett Packard Enterprise company
+# Copyright (c) 2026 Hewlett Packard Enterprise Development LP.
 
 """
 Sample script shows making a REST API call to Aruba Central using module
@@ -49,7 +49,7 @@ an API call is made to obtain list of existing groups.
 """
 
 # Import Aruba Central Base
-from pycentral.base import ArubaCentralBase
+from pycentral.classic.base import ArubaCentralBase
 from pprint import pprint
 
 # Create an instance of ArubaCentralBase using API access token
@@ -66,7 +66,7 @@ central = ArubaCentralBase(central_info=central_info,
                            ssl_verify=ssl_verify)
 
 # Sample API call using Configuration module `pycentral.configuration`
-from pycentral.configuration import Groups
+from pycentral.classic.configuration import Groups
 
 # Get groups max limit 20, apply offset and fetch other groups in loop
 g = Groups()
