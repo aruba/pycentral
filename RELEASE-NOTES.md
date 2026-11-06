@@ -1,4 +1,4 @@
-# 2.0a27 (unreleased)
+# 2.0a27
 
 ### Breaking changes
 
@@ -14,10 +14,13 @@
 ### Changed
 
 - Classic sample scripts moved from `sample_scripts/` to `pycentral/classic/sample_scripts/`.
+- Copyright headers in the classic modules and sample scripts now read "Hewlett Packard Enterprise Development LP".
+- The release workflow uses `actions/download-artifact` v6, and a new `pip-audit` workflow checks dependencies for known vulnerabilities.
 
 ### Docs
 
 - Added `SECURITY.md`: supported versions and how to report a vulnerability.
+- `CONTRIBUTIONS.md`: updated branding, the team contact address (networking-automation@hpe.com) and the sample scripts path.
 
 # 2.0a26
 

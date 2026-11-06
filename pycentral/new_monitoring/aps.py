@@ -1,9 +1,10 @@
 from ..exceptions import ParameterError
 from ..utils.monitoring_utils import (
+    build_trend_params,
     execute_get,
-    execute_trend_request,
     get_all_pages,
     normalize_metric,
+    normalize_trend_response,
     validate_central_conn_and_serial,
     validate_limit_and_next,
     validate_query_length,
@@ -127,6 +128,36 @@ class MonitoringAPs:
         return execute_get(central_conn, endpoint=f"{MONITOR_TYPE}/{serial_number}")
 
     @staticmethod
+    def _execute_trend_request(
+        central_conn,
+        serial_number,
+        metric,
+        metric_map,
+        resource_path=None,
+        start_time=None,
+        end_time=None,
+        duration=None,
+        site_id=None,
+        extra_params=None,
+        return_raw_response=False,
+    ):
+        validate_central_conn_and_serial(central_conn, serial_number)
+        metric = normalize_metric(metric, metric_map)
+        params = build_trend_params(
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            site_id=site_id,
+            extra_params=extra_params,
+        )
+        path = f"{MONITOR_TYPE}/{serial_number}"
+        if resource_path:
+            path = f"{path}/{resource_path}"
+        path = f"{path}/{metric_map[metric]}"
+        response = execute_get(central_conn, endpoint=path, params=params)
+        return normalize_trend_response(response, return_raw_response)
+
+    @staticmethod
     def get_ap_trends(
         central_conn,
         serial_number,
@@ -176,9 +207,8 @@ class MonitoringAPs:
                 )
             extra_params = {"interface-type": normalized_interface_type}
 
-        return execute_trend_request(
+        return MonitoringAPs._execute_trend_request(
             central_conn=central_conn,
-            base_path=MONITOR_TYPE,
             serial_number=serial_number,
             metric=normalized_metric,
             metric_map=AP_TREND_METRICS,
@@ -458,9 +488,8 @@ class MonitoringAPs:
             ParameterError: If serial_number, radio_number, or metric is invalid.
         """
         validate_required_value("radio_number", radio_number)
-        return execute_trend_request(
+        return MonitoringAPs._execute_trend_request(
             central_conn=central_conn,
-            base_path=MONITOR_TYPE,
             serial_number=serial_number,
             metric=metric,
             metric_map=RADIO_TREND_METRICS,
@@ -532,9 +561,8 @@ class MonitoringAPs:
             ParameterError: If serial_number, port_index, or metric is invalid.
         """
         validate_required_value("port_index", port_index)
-        return execute_trend_request(
+        return MonitoringAPs._execute_trend_request(
             central_conn=central_conn,
-            base_path=MONITOR_TYPE,
             serial_number=serial_number,
             metric=metric,
             metric_map=PORT_TREND_METRICS,
@@ -695,9 +723,8 @@ class MonitoringAPs:
             ParameterError: If serial_number, tunnel_id, or metric is invalid.
         """
         validate_required_value("tunnel_id", tunnel_id)
-        return execute_trend_request(
+        return MonitoringAPs._execute_trend_request(
             central_conn=central_conn,
-            base_path=MONITOR_TYPE,
             serial_number=serial_number,
             metric=metric,
             metric_map=TUNNEL_TREND_METRICS,
